@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "768666582185",
+    "project_id": "nexresq",
+    "storage_bucket": "nexresq.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:768666582185:android:5176b7ef3d25457c9afdb8",
+        "android_client_info": {
+          "package_name": "com.example.nexresq"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBsxd_5qMBGk9ZxcAQ2tLJ9dXiQGPQjhSg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
