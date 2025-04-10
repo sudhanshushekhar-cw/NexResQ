@@ -1,8 +1,11 @@
 package com.example.nexresq;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -25,6 +28,12 @@ import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
@@ -37,6 +46,8 @@ public class LoginActivity extends AppCompatActivity {
     private EditText editTextPhone, editTextOtp;
     private Button btnNext, btnVerify;
 
+    private ProgressDialog progressDialog;
+
     private String verificationId;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +59,11 @@ public class LoginActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        progressDialog = new ProgressDialog(LoginActivity.this);
+        progressDialog.setMessage("Loading, please wait...");
+        progressDialog.setCancelable(false);
+
 
         // below line is for getting instance
         // of our FirebaseAuth.
@@ -63,6 +79,7 @@ public class LoginActivity extends AppCompatActivity {
         btnNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 if(!editTextPhone.getText().toString().isEmpty() && editTextPhone.getText().toString().length() == 10){
                     String phoneNumber = "+91"+editTextPhone.getText().toString();
                     textViewTitle.setText("Enter verification code");
@@ -86,6 +103,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (!editTextOtp.getText().toString().isEmpty() && editTextOtp.getText().toString().length() == 6){
+                    progressDialog.show();
                     verifyCode(editTextOtp.getText().toString());
                 }else{
                     textViewSubTitle.setText("OTP is not valid");
@@ -106,13 +124,65 @@ public class LoginActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
                             // if the code is correct and the task is successful
-                            // we are sending our user to new activity.
-                            Intent i = new Intent(LoginActivity.this, HomeActivity.class);
-                            startActivity(i);
-                            finish();
+                            String postUrl = GlobalData.BASE_URL+"nexresq/user/add_user_number.php";
+                            Map<String, String> postParams = new HashMap<>();
+                            postParams.put("number", editTextPhone.getText().toString());
+                            VolleyHelper.sendPostRequest(LoginActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {
+                                @Override
+                                public void onSuccess(String response) {
+                                    Log.d("POST Response", response);
+
+                                    //Store login data into shared local storage
+                                    SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+                                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                                    editor.putBoolean("isLoggedIn", true);
+                                    editor.putString("number", editTextPhone.getText().toString());
+
+
+                                    JSONObject jsonObject = null;
+
+                                    try {
+                                        jsonObject = new JSONObject(response);
+
+                                        // Check status or message if needed
+                                        String status = jsonObject.getString("status");
+
+                                        // Get the nested "user" object
+                                        JSONObject userObject = jsonObject.getJSONObject("user");
+                                        String isProfileCompleted = userObject.getString("isProfileCompleted");
+
+                                        editor.putString("firstName",userObject.getString("firstName"));
+                                        editor.putString("email",userObject.getString("email"));
+                                        editor.putString("userId",userObject.getString("userId"));
+                                        editor.putString("isProfileCompleted", isProfileCompleted);
+                                        editor.putString("isVolunteer", userObject.getString("isVolunteer"));
+                                        editor.apply();
+                                        Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_LONG).show();
+
+                                        if(isProfileCompleted.equals("0")){
+                                            progressDialog.dismiss();
+                                            Intent i = new Intent(LoginActivity.this, ProfileActivity.class);
+                                            startActivity(i);
+                                            finish();
+                                        }else {
+                                            progressDialog.dismiss();
+                                            Intent i = new Intent(LoginActivity.this, HomeActivity.class);
+                                            startActivity(i);
+                                            finish();
+                                        }
+                                    } catch (JSONException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    Log.e("POST Error", error);
+                                }
+                            });
+
+
                         } else {
-                            // if the code is not correct then we are
-                            // displaying an error message to the user.
                             Toast.makeText(LoginActivity.this, task.getException().getMessage(), Toast.LENGTH_LONG).show();
                         }
                     }

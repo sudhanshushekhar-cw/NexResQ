@@ -1,6 +1,7 @@
 package com.example.nexresq;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,17 +35,29 @@ public class MainActivity extends AppCompatActivity {
             window.setStatusBarColor(ContextCompat.getColor(this, R.color.primaryColor));
         }
 
-        Intent intent = new Intent(this, LoginActivity.class);
-
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                startActivity(intent);
-                finish();
+
+                SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+                boolean isLoggedIn = sharedPreferences.getBoolean("isLoggedIn", false);
+                String isProfileCompleted = sharedPreferences.getString("isProfileCompleted", "0");
+
+                if (isLoggedIn && isProfileCompleted.equals("1")) {
+                    Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                    startActivity(intent);
+                    finish();
+                }else if (isLoggedIn && isProfileCompleted.equals("0")) {
+                    Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
+                    startActivity(intent);
+                    finish();
+                }else{
+                    Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                    startActivity(intent);
+                    finish();
+                }
+
             }
         },3500);
-
-
-
     }
 }
