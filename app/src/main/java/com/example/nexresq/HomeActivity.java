@@ -1,5 +1,6 @@
 package com.example.nexresq;
 
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -14,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -33,6 +35,7 @@ public class HomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_home);
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
@@ -69,6 +72,8 @@ public class HomeActivity extends AppCompatActivity {
                 } else if (id == R.id.menuSettings) {
                     Toast.makeText(HomeActivity.this, "Settings", Toast.LENGTH_SHORT).show();
                 }
+                // Close the drawer after item is selected
+                drawerLayout.closeDrawer(GravityCompat.START);
                 return true;
             }
         });
@@ -83,6 +88,5 @@ public class HomeActivity extends AppCompatActivity {
             ft.replace(R.id.container, fragment);
 
         ft.commit();
-
     }
 }

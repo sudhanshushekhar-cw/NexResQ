@@ -102,9 +102,12 @@ public class LoginActivity extends AppCompatActivity {
         btnVerify.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Log.d("Crash Testing", "Step 1");
                 if (!editTextOtp.getText().toString().isEmpty() && editTextOtp.getText().toString().length() == 6){
+                    Log.d("Crash Testing", "Step 2");
                     progressDialog.show();
                     verifyCode(editTextOtp.getText().toString());
+                    Log.d("Crash Testing", "Step 3");
                 }else{
                     textViewSubTitle.setText("OTP is not valid");
                     textViewSubTitle.setTextColor(Color.parseColor("#FF0000"));
@@ -157,6 +160,8 @@ public class LoginActivity extends AppCompatActivity {
                                         editor.putString("isProfileCompleted", isProfileCompleted);
                                         editor.putString("isVolunteer", userObject.getString("isVolunteer"));
                                         editor.apply();
+
+
                                         Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_LONG).show();
 
                                         if(isProfileCompleted.equals("0")){
@@ -183,6 +188,7 @@ public class LoginActivity extends AppCompatActivity {
 
 
                         } else {
+                            progressDialog.dismiss();
                             Toast.makeText(LoginActivity.this, task.getException().getMessage(), Toast.LENGTH_LONG).show();
                         }
                     }

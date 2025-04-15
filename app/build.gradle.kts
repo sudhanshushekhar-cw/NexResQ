@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
 
-    //id("com.android.application")
+//    id("com.android.application")
     id("com.google.gms.google-services")
 }
 
@@ -47,18 +47,22 @@ dependencies {
     implementation(libs.lifecycle.livedata.ktx)
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.database)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    implementation ("com.google.android.gms:play-services-location:21.0.1")
+
 
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
-
     // TODO: Add the dependencies for Firebase products you want to use
     // When using the BoM, don't specify versions in Firebase dependencies
     implementation("com.google.firebase:firebase-analytics")
     // Add the dependencies for any other desired Firebase products
     // https://firebase.google.com/docs/android/setup#available-libraries
+    //Firebase Realtime database
+    implementation("com.google.firebase:firebase-database")
 
     //for api request Fast Networking packages
     implementation("com.android.volley:volley:1.2.1")

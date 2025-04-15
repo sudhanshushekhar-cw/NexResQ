@@ -17,9 +17,16 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
+        android:layout_margin="10dp"
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/navigation_header_layout"
         app:menu="@menu/navigation_items"
+        android:background="@drawable/bg_nav_rounded"
+        android:elevation="10dp"
+        app:labelVisibilityMode="labeled"
+        app:itemIconTint="@color/nav_selector"
+        app:itemTextColor="@color/nav_selector"
+        app:itemBackground="@drawable/nav_item_background"
         android:id="@+id/navigationView"/>
 
 
