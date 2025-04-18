@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/bottomSheetLayout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/rounded_top_bg">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Join Team"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Example options -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/createOrgButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Create Orgenization"
+        android:layout_marginTop="10dp"
+        android:textSize="20dp"
+        android:textColor="@color/white"
+        android:background="@drawable/rounded_button_bg" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/joinOrgButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:text="Join Orgenization"
+        android:textSize="20dp"
+        android:textColor="@color/black"
+        android:background="@drawable/rounded_button_bg2" />
+
+</LinearLayout>

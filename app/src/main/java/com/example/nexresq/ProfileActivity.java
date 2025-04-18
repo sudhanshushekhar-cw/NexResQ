@@ -116,7 +116,7 @@ public class ProfileActivity extends AppCompatActivity {
             String number = sharedPreferences.getString("number", "0");
 
             // API request to update profile on server;
-            String postUrl = GlobalData.BASE_URL+"nexresq/user/update_profile.php";
+            String postUrl = GlobalData.BASE_URL+"user/update_profile.php";
             Map<String, String> postParams = new HashMap<>();
             postParams.put("userId", userId);
             postParams.put("number", number);

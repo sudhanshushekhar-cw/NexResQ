@@ -10,11 +10,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -22,31 +23,22 @@ import androidx.fragment.app.Fragment;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.firebase.Firebase;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import androidx.appcompat.app.AlertDialog;
 
 public class HomeFragment extends Fragment {
 
     private static final String TAG = "HomeFragment";
     private FusedLocationProviderClient fusedLocationClient;
-    private String emergencyTypeToLaunch = null;
-    double lat,lon;
+    private String selectedEmergencyType;
 
-    // Write a message to the database
-    FirebaseDatabase database = FirebaseDatabase.getInstance();
-    DatabaseReference myRef = database.getReference("message");
-
-
-
-    // ✅ Activity Result Launcher for location permission
     private final ActivityResultLauncher<String> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
-                    // ✅ Permission granted now — call this to start service & activity
-//                    fetchLocationAndLaunchActivity();
-                    Intent serviceIntent = new Intent(getActivity(), LocationService.class);
-                    ContextCompat.startForegroundService(requireContext(), serviceIntent);
+                    startLocationService();
+                    if (selectedEmergencyType != null) {
+                        fetchLocationAndLaunchActivity(selectedEmergencyType);
+                    }
                 } else {
                     if (!ActivityCompat.shouldShowRequestPermissionRationale(requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION)) {
                         showSettingsDialog();
@@ -56,78 +48,55 @@ public class HomeFragment extends Fragment {
                 }
             });
 
-
     public HomeFragment() {
         // Required empty public constructor
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
-
-        // ✅ Initialize FusedLocationProviderClient
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
         CardView medicalCard = view.findViewById(R.id.medicalCard);
         CardView fireCard = view.findViewById(R.id.fireCard);
         CardView policeCard = view.findViewById(R.id.policeCard);
+        CardView becomeVolunteerCard = view.findViewById(R.id.becomeVolunteerCard);
 
-        requestLocationWithPermission();
-        Intent intent = new Intent(getActivity(), EmergencyActivity.class);
-        medicalCard.setOnClickListener(v -> {
-//            myRef.setValue("Hello, World!");
-            // ✅ Start LocationService
+        // Check permission once on load
+        requestLocationPermission(null);
 
-            emergencyTypeToLaunch = "Medical Emergency";
-            requestLocationWithPermission();
-            intent.putExtra("emergencyType", emergencyTypeToLaunch);
-            intent.putExtra("latitude", lat);
-            intent.putExtra("longitude", lon);
-            startActivity(intent);
-        });
+        medicalCard.setOnClickListener(v -> requestLocationPermission("Medical Emergency"));
+        fireCard.setOnClickListener(v -> requestLocationPermission("Fire Emergency"));
+        policeCard.setOnClickListener(v -> requestLocationPermission("Police Emergency"));
 
-        fireCard.setOnClickListener(v -> {
-            emergencyTypeToLaunch = "Fire Emergency";
-            requestLocationWithPermission();
-            intent.putExtra("emergencyType", emergencyTypeToLaunch);
-            intent.putExtra("latitude", lat);
-            intent.putExtra("longitude", lon);
-            startActivity(intent);
-        });
-
-        policeCard.setOnClickListener(v -> {
-            emergencyTypeToLaunch = "Police Emergency";
-            requestLocationWithPermission();
-            intent.putExtra("emergencyType", emergencyTypeToLaunch);
-            intent.putExtra("latitude", lat);
-            intent.putExtra("longitude", lon);
-            startActivity(intent);
-        });
+        becomeVolunteerCard.setOnClickListener(v -> showBottomSheet());
 
         return view;
     }
 
-    // ✅ Check and request location permission
-    private void requestLocationWithPermission() {
+    private void requestLocationPermission(String emergencyType) {
+        selectedEmergencyType = emergencyType;
+
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
 
-            if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
-                Toast.makeText(getContext(), "Location permission is needed for emergency features.", Toast.LENGTH_LONG).show();
-            }
-
-            // Launch permission dialog
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
-
         } else {
-            Intent serviceIntent = new Intent(getActivity(), LocationService.class);
-            ContextCompat.startForegroundService(requireContext(), serviceIntent);
+            startLocationService();
+
+            if (emergencyType != null) {
+                fetchLocationAndLaunchActivity(emergencyType);
+            }
         }
     }
 
-    // ✅ Fetch location and start EmergencyActivity
-    private void fetchLocationAndLaunchActivity() {
+    private void startLocationService() {
+        Intent serviceIntent = new Intent(getActivity(), LocationService.class);
+        ContextCompat.startForegroundService(requireContext(), serviceIntent);
+    }
+
+    private void fetchLocationAndLaunchActivity(String emergencyType) {
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(getContext(), "Location permission not granted", Toast.LENGTH_SHORT).show();
@@ -135,11 +104,9 @@ public class HomeFragment extends Fragment {
         }
 
         fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(requireActivity(), location -> {
+                .addOnSuccessListener(location -> {
                     if (location != null) {
-                        lat = location.getLatitude();
-                        lon = location.getLongitude();
-                        Log.d(TAG, "Location: " + lat + ", " + lon);
+                        launchEmergencyActivity(emergencyType, location);
                     } else {
                         Toast.makeText(getContext(), "Unable to fetch location", Toast.LENGTH_SHORT).show();
                     }
@@ -150,12 +117,19 @@ public class HomeFragment extends Fragment {
                 });
     }
 
-    // ⚙️ Dialog to guide user to app settings when permission is permanently denied
+    private void launchEmergencyActivity(String type, Location location) {
+        Intent intent = new Intent(getActivity(), EmergencyActivity.class);
+        intent.putExtra("emergencyType", type);
+        intent.putExtra("latitude", location.getLatitude());
+        intent.putExtra("longitude", location.getLongitude());
+        startActivity(intent);
+    }
+
     private void showSettingsDialog() {
         new AlertDialog.Builder(requireContext())
-                .setTitle("Location Permission Needed")
-                .setMessage("Please enable location permission in app settings to continue.")
-                .setPositiveButton("Go to Settings", (dialog, which) -> {
+                .setTitle("Permission Needed")
+                .setMessage("Please enable location permission in settings.")
+                .setPositiveButton("Settings", (dialog, which) -> {
                     Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                     Uri uri = Uri.fromParts("package", requireContext().getPackageName(), null);
                     intent.setData(uri);
@@ -163,5 +137,32 @@ public class HomeFragment extends Fragment {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void showBottomSheet() {
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(requireContext());
+        View sheetView = LayoutInflater.from(getContext()).inflate(R.layout.bottom_sheet_vol_reg, null);
+        bottomSheetDialog.setContentView(sheetView);
+
+        View bottomSheet = bottomSheetDialog.getDelegate().findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottomSheet != null) {
+            bottomSheet.setBackground(null);
+        }
+
+        bottomSheetDialog.show();
+
+        Button createOrgButton = sheetView.findViewById(R.id.createOrgButton);
+        Button joinOrgButton = sheetView.findViewById(R.id.joinOrgButton);
+
+        Intent intent = new Intent(getActivity(), VolunteerRegistrationActivity.class);
+        createOrgButton.setOnClickListener(v -> {
+            intent.putExtra("mode", "createOrg");
+            startActivity(intent);
+        });
+
+        joinOrgButton.setOnClickListener(v -> {
+            intent.putExtra("mode", "joinOrg");
+            startActivity(intent);
+        });
     }
 }
