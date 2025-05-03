@@ -1,9 +1,12 @@
 package com.example.nexresq;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -36,6 +39,23 @@ public class HomeActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_home);
 
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+        toolbar = findViewById(R.id.toolbar);
+
+        Menu menu = navigationView.getMenu();
+        MenuItem teamItem = menu.findItem(R.id.menuTeam);
+
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+        String isOrganization = sharedPreferences.getString("isOrganization", "0");
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+
+        if (isOrganization.equals("1")) {
+            teamItem.setVisible(true);  // Show if organization
+        } else {
+            teamItem.setVisible(false); // Hide otherwise
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
@@ -60,9 +80,17 @@ public class HomeActivity extends AppCompatActivity {
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int id = item.getItemId();
                 int menuHelpStatus = 1;
+                int menuTeamStatus = 1;
                 if(id == R.id.menuHome){
                     loadFragment(new HomeFragment(), 0);
-                }else if(id == R.id.menuHelp){
+                } else if (id == R.id.menuTeam) {
+                    if(menuTeamStatus == 1){
+                        loadFragment(new TeamFragment(), menuTeamStatus);
+                        menuTeamStatus = 0;
+                    }else{
+                        loadFragment(new TeamFragment(), menuTeamStatus);
+                    }
+                } else if(id == R.id.menuHelp){
                     if(menuHelpStatus == 1){
                         loadFragment(new HelpFragment(), menuHelpStatus);
                         menuHelpStatus = 0;
@@ -71,6 +99,12 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 } else if (id == R.id.menuSettings) {
                     Toast.makeText(HomeActivity.this, "Settings", Toast.LENGTH_SHORT).show();
+                } else if (id == R.id.menuLogout) {
+                    editor.putBoolean("isLoggedIn", false);
+                    editor.apply();
+                    Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+                    startActivity(intent);
+                    finish();
                 }
                 // Close the drawer after item is selected
                 drawerLayout.closeDrawer(GravityCompat.START);

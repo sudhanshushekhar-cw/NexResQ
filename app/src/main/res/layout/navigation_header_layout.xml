@@ -32,7 +32,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Sudhanshu Shekhar"
+                    android:text="Ravi Raj"
                     android:fontFamily="sans-serif-condensed-medium"
                     android:textSize="21sp"
                     android:textColor="@color/black"/>

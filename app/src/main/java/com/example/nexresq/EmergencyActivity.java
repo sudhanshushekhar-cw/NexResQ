@@ -1,12 +1,14 @@
 package com.example.nexresq;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,7 +28,9 @@ import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRe
 import com.google.android.libraries.places.api.net.PlacesClient;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class EmergencyActivity extends AppCompatActivity {
 
@@ -53,6 +57,8 @@ public class EmergencyActivity extends AppCompatActivity {
         userLocationEditText = findViewById(R.id.userLocationEditText);
         suggestionsRecyclerView = findViewById(R.id.suggestionsRecyclerView);
         Button selectLocationButton = findViewById(R.id.selectLocationButton);
+        LinearLayout sendRequestLayout = findViewById(R.id.sendRequestLayout);
+
 
         backImageView.setOnClickListener(v -> finish());
 
@@ -67,6 +73,7 @@ public class EmergencyActivity extends AppCompatActivity {
             userLocationEditText.setText(suggestion.getPrimaryText(null).toString());
             suggestionsRecyclerView.setVisibility(View.GONE);
         });
+        
         suggestionsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         suggestionsRecyclerView.setAdapter(suggestionAdapter);
 
@@ -90,15 +97,53 @@ public class EmergencyActivity extends AppCompatActivity {
         });
 
         Intent intent = getIntent();
-        if (intent != null && intent.hasExtra("emergencyType")) {
-            String emergencyType = intent.getStringExtra("emergencyType");
-            textView.setText(emergencyType);
+        if (intent != null && intent.hasExtra("emergencyId")) {
+            String emergencyId = intent.getStringExtra("emergencyId");
+            if (emergencyId.equals("1"))
+                textView.setText(" Medical Emergency");
+            else if (emergencyId.equals("2"))
+                textView.setText(" Fire Emergency");
+            else if (emergencyId.equals("3"))
+                textView.setText(" Police Emergency");
+
             double latitude = intent.getDoubleExtra("latitude", 0.0);
             double longitude = intent.getDoubleExtra("longitude", 0.0);
 
             String userLatLog = "Latitude: " + latitude + " & Longitude: " + longitude;
             userLatLogTextView.setText(userLatLog);
+
+            // API request to update profile on server;
+            String postUrl = GlobalData.BASE_URL+"emergency/create_emergency.php";
+            Map<String, String> postParams = new HashMap<>();
+            postParams.put("userId", GlobalData.getUserId(EmergencyActivity.this));
+            postParams.put("serviceId",emergencyId);
+            postParams.put("priority","Low");
+            postParams.put("latitude",String.valueOf(latitude));
+            postParams.put("longitude",String.valueOf(longitude));
+
+            sendRequestLayout.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    VolleyHelper.sendPostRequest(EmergencyActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {
+                        @Override
+                        public void onSuccess(String response) {
+                            Toast.makeText(EmergencyActivity.this, "Emergency request sent!", Toast.LENGTH_LONG).show();
+                            Log.d("API_SUCCESS", response);
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            Toast.makeText(EmergencyActivity.this, "Error: " + error, Toast.LENGTH_LONG).show();
+                            Log.e("API_ERROR", error);
+                        }
+                    });
+                }
+            });
         }
+
+
+
     }
 
     private void fetchSuggestions(String query) {

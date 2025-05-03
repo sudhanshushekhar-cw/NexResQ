@@ -133,6 +133,7 @@ public class ProfileActivity extends AppCompatActivity {
                     SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.putString("firstName",firstName);
+                    editor.putString("lastName",lastName);
                     editor.putString("email",email);
                     editor.putString("isProfileCompleted","1");
                     editor.apply();

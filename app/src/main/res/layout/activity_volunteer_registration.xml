@@ -130,6 +130,22 @@
                         android:textColorHint="#808080"
                         android:textSize="16sp" />
 
+                    <!-- Email -->
+                    <EditText
+                        android:id="@+id/editTextAreaCode"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/rounded_edittext_bg2"
+                        android:hint="Area Code"
+                        android:inputType="number"
+                        android:autofillHints="areaCode"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:textColor="#000"
+                        android:textColorHint="#808080"
+                        android:textSize="16sp" />
+
                     <!-- Submit Button -->
                     <Button
                         android:id="@+id/btnCreateOrg"
@@ -144,10 +160,10 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- 🌟 Join Organization Card -->
+        <!-- Join Organization Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/joinOrgCard"
-            android:visibility="gone"
+            android:visibility="visible"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp"
@@ -178,16 +194,6 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- Select Org -->
-                    <Spinner
-                        android:id="@+id/spinnerOrg"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:background="@drawable/rounded_edittext_bg2"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp" />
-
-                    <!-- Select Service -->
                     <Spinner
                         android:id="@+id/spinnerServiceTypeRequest"
                         android:layout_width="match_parent"
@@ -196,6 +202,28 @@
                         android:background="@drawable/rounded_edittext_bg2"
                         android:paddingStart="12dp"
                         android:paddingEnd="12dp" />
+
+                    <!-- Select Org -->
+                    <Spinner
+                        android:id="@+id/spinnerOrganization"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/rounded_edittext_bg2"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:hint="Select Organization name"/>
+
+                    <!-- Select Service -->
+<!--                    <AutoCompleteTextView-->
+<!--                        android:id="@+id/autoCompleteTextViewOrgName"-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="48dp"-->
+<!--                        android:layout_marginTop="16dp"-->
+<!--                        android:background="@drawable/rounded_edittext_bg2"-->
+<!--                        android:paddingStart="12dp"-->
+<!--                        android:paddingEnd="12dp"-->
+<!--                        android:hint="Organization name"/>                        />-->
 
                     <!-- Name on Doc -->
                     <EditText
@@ -210,7 +238,8 @@
                         android:paddingEnd="12dp"
                         android:textColor="#000"
                         android:textColorHint="#808080"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        android:enabled="false" />
 
                     <!-- Request Button -->
                     <Button

@@ -1,7 +1,10 @@
 package com.example.nexresq;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
@@ -56,6 +59,11 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("MyPrefs", MODE_PRIVATE);
+
+        String isOrganization = sharedPreferences.getString("isOrganization", "0");
+        Toast.makeText(getContext(), isOrganization, Toast.LENGTH_SHORT).show();
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
         CardView medicalCard = view.findViewById(R.id.medicalCard);
@@ -66,9 +74,13 @@ public class HomeFragment extends Fragment {
         // Check permission once on load
         requestLocationPermission(null);
 
-        medicalCard.setOnClickListener(v -> requestLocationPermission("Medical Emergency"));
-        fireCard.setOnClickListener(v -> requestLocationPermission("Fire Emergency"));
-        policeCard.setOnClickListener(v -> requestLocationPermission("Police Emergency"));
+        if(isOrganization.equals("1")){
+            becomeVolunteerCard.setVisibility(View.GONE);
+        }
+
+        medicalCard.setOnClickListener(v -> requestLocationPermission("1"));
+        fireCard.setOnClickListener(v -> requestLocationPermission("2"));
+        policeCard.setOnClickListener(v -> requestLocationPermission("3"));
 
         becomeVolunteerCard.setOnClickListener(v -> showBottomSheet());
 
@@ -119,7 +131,7 @@ public class HomeFragment extends Fragment {
 
     private void launchEmergencyActivity(String type, Location location) {
         Intent intent = new Intent(getActivity(), EmergencyActivity.class);
-        intent.putExtra("emergencyType", type);
+        intent.putExtra("emergencyId", type);
         intent.putExtra("latitude", location.getLatitude());
         intent.putExtra("longitude", location.getLongitude());
         startActivity(intent);

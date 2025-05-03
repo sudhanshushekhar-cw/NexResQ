@@ -127,7 +127,7 @@ public class LoginActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
                             // if the code is correct and the task is successful
-                            String postUrl = GlobalData.BASE_URL+"nexresq/user/add_user_number.php";
+                            String postUrl = GlobalData.BASE_URL+"user/add_user_number.php";
                             Map<String, String> postParams = new HashMap<>();
                             postParams.put("number", editTextPhone.getText().toString());
                             VolleyHelper.sendPostRequest(LoginActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {
@@ -155,10 +155,13 @@ public class LoginActivity extends AppCompatActivity {
                                         String isProfileCompleted = userObject.getString("isProfileCompleted");
 
                                         editor.putString("firstName",userObject.getString("firstName"));
+                                        editor.putString("lastName",userObject.getString("lastName"));
                                         editor.putString("email",userObject.getString("email"));
                                         editor.putString("userId",userObject.getString("userId"));
                                         editor.putString("isProfileCompleted", isProfileCompleted);
                                         editor.putString("isVolunteer", userObject.getString("isVolunteer"));
+                                        editor.putString("organizationId", userObject.getString("organizationId"));
+                                        editor.putString("isOrganization", userObject.getString("isOrganization"));
                                         editor.apply();
 
 
