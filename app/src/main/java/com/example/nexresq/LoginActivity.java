@@ -183,7 +183,11 @@ public class LoginActivity extends AppCompatActivity {
                                         String userId = userObject.getString("userId");
                                         Map<String, Object> userData = new HashMap<>();
                                         userData.put("isAvailable", false); // default available
-                                        userData.put("isVolunteer", false);
+                                        if (userObject.getString("isVolunteer").equals("0")){
+                                            userData.put("isVolunteer", false);
+                                        }else {
+                                            userData.put("isVolunteer", false);
+                                        }
 
                                         FirebaseMessaging.getInstance().getToken()
                                                 .addOnCompleteListener(task -> {

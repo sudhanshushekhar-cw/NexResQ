@@ -131,7 +131,7 @@ public class VolunteerRegistrationActivity extends AppCompatActivity {
                             Map<String, Object> updates = new HashMap<>();
                             updates.put("isVolunteer", true);
                             updates.put("isAvailable", true);
-                            updates.put("serviceId",selectedService.getId());
+                            updates.put("serviceId",String.valueOf(selectedService.getId()));
                             ref.updateChildren(updates);
 
                             Toast.makeText(VolunteerRegistrationActivity.this, "Organization created successfully", Toast.LENGTH_SHORT).show();

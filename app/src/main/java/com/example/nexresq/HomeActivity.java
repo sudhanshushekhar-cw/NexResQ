@@ -131,8 +131,6 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
 
-//        Intent serviceIntent = new Intent(HomeActivity.this, EmergencyListenerService.class);
-//        ContextCompat.startForegroundService(HomeActivity.this, serviceIntent);
     }
 
     private void loadFragment(Fragment fragment, int flag) {

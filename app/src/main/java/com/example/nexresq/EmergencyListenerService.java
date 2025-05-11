@@ -3,6 +3,7 @@ package com.example.nexresq;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.location.Location;
@@ -138,6 +139,7 @@ public class EmergencyListenerService extends Service {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 try {
+                    Log.d("DebugFirebase", "Step 1 Com");
                     List<String> nearbyVolunteers = new ArrayList<>();
 
                     for (DataSnapshot userSnapshot : snapshot.getChildren()) {
@@ -148,21 +150,17 @@ public class EmergencyListenerService extends Service {
                         if (Boolean.TRUE.equals(isVolunteer) && Boolean.TRUE.equals(isAvailable) &&
                                 volunteerServiceId != null && volunteerServiceId.equals(emergencyServiceId)) {
 
-                            String latStr = userSnapshot.child("locations").child("latitude").getValue(String.class);
-                            String lngStr = userSnapshot.child("locations").child("longitude").getValue(String.class);
+                            Double latNum = userSnapshot.child("locations").child("latitude").getValue(Double.class);
+                            Double lngNum = userSnapshot.child("locations").child("longitude").getValue(Double.class);
 
-                            try {
-                                double latNum = Double.parseDouble(latStr);
-                                double lngNum = Double.parseDouble(lngStr);
-
+                            if (latNum != null && lngNum != null) {
                                 float[] results = new float[1];
                                 Location.distanceBetween(userLat, userLng, latNum, lngNum, results);
 
                                 if (results[0] <= radiusMeters) {
+                                    Log.d(TAG, "Volunteer found within " + results[0] + "m: " + userSnapshot.getKey());
                                     nearbyVolunteers.add(userSnapshot.getKey());
                                 }
-                            } catch (NumberFormatException e) {
-                                Log.e(TAG, "Invalid volunteer location data.", e);
                             }
                         }
                     }
@@ -204,20 +202,34 @@ public class EmergencyListenerService extends Service {
     private void showEmergencyNotification(String title, String message) {
         Log.d(TAG, "Displaying notification: " + title + " - " + message);
 
+        Intent intent = new Intent(this, HomeActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        intent.putExtra("fromNotification", true);  // Optional: pass extra data
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build();
+
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (manager != null) {
-            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle(title)
-                    .setContentText(message)
-                    .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .build();
-
             manager.notify((int) System.currentTimeMillis(), notification);
         } else {
             Log.e(TAG, "NotificationManager is null. Notification not shown.");
         }
     }
+
 
     private Notification createForegroundNotification(String contentText) {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
