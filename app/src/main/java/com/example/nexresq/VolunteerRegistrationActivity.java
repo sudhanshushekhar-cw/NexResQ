@@ -18,16 +18,21 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class VolunteerRegistrationActivity extends AppCompatActivity {
 
+    private String userId;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,9 +44,10 @@ public class VolunteerRegistrationActivity extends AppCompatActivity {
             return insets;
         });
 
-        String userId = GlobalData.getUserId(this);
+        userId = GlobalData.getUserId(this);
         Intent intent = getIntent();
         String mode = intent.getStringExtra("mode");
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("user").child(String.valueOf(userId));
 
         // UI References
         Spinner spinnerServiceType = findViewById(R.id.spinnerServiceType);
@@ -120,6 +126,13 @@ public class VolunteerRegistrationActivity extends AppCompatActivity {
                             editor.putString("isOrganization", "1");
                             editor.putString("organizationId", orgObj.getString("organizationId"));
                             editor.apply();
+
+                            //Updata in realtime database
+                            Map<String, Object> updates = new HashMap<>();
+                            updates.put("isVolunteer", true);
+                            updates.put("isAvailable", true);
+                            updates.put("serviceId",selectedService.getId());
+                            ref.updateChildren(updates);
 
                             Toast.makeText(VolunteerRegistrationActivity.this, "Organization created successfully", Toast.LENGTH_SHORT).show();
                             Intent resultIntent = new Intent();
@@ -212,6 +225,13 @@ public class VolunteerRegistrationActivity extends AppCompatActivity {
                             editor.putString("isVolunteer", "1");
                             editor.putString("organizationId", organization.getId());
                             editor.apply();
+
+                            //Update realtime database
+                            Map<String, Object> updates = new HashMap<>();
+                            updates.put("isVolunteer", true);
+                            updates.put("isAvailable", true);
+                            updates.put("serviceId",service.getId());
+                            ref.updateChildren(updates);
 
                             Intent resultIntent = new Intent();
                             resultIntent.putExtra("refresh", true);

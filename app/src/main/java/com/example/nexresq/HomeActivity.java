@@ -1,7 +1,9 @@
 package com.example.nexresq;
 
+import  android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
@@ -9,6 +11,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -16,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.GravityCompat;
@@ -32,7 +36,7 @@ public class HomeActivity extends AppCompatActivity {
     DrawerLayout drawerLayout;
     NavigationView navigationView;
     Toolbar toolbar;
-
+    View headerView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,16 +46,24 @@ public class HomeActivity extends AppCompatActivity {
         drawerLayout = findViewById(R.id.drawerLayout);
         navigationView = findViewById(R.id.navigationView);
         toolbar = findViewById(R.id.toolbar);
+        headerView =  navigationView.getHeaderView(0);
 
         Menu menu = navigationView.getMenu();
         MenuItem teamItem = menu.findItem(R.id.menuTeam);
+
+        // Get the TextViews
+        TextView userNameTextView = headerView.findViewById(R.id.userNameTextView);
+        TextView userNumberTextView = headerView.findViewById(R.id.userNumberTextView);
+        userNameTextView.setText(GlobalData.getFirstName(HomeActivity.this));
+        userNumberTextView.setText(GlobalData.getUserId(HomeActivity.this));
+
 
         SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
         String isOrganization = sharedPreferences.getString("isOrganization", "0");
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
 
-        if (isOrganization.equals("1")) {
+        if(isOrganization.equals("1")) {
             teamItem.setVisible(true);  // Show if organization
         } else {
             teamItem.setVisible(false); // Hide otherwise
@@ -62,6 +74,13 @@ public class HomeActivity extends AppCompatActivity {
             window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
             window.setStatusBarColor(ContextCompat.getColor(this, R.color.white));
+        }
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+            }
         }
 
         drawerLayout = findViewById(R.id.drawerLayout);
@@ -111,6 +130,9 @@ public class HomeActivity extends AppCompatActivity {
                 return true;
             }
         });
+
+//        Intent serviceIntent = new Intent(HomeActivity.this, EmergencyListenerService.class);
+//        ContextCompat.startForegroundService(HomeActivity.this, serviceIntent);
     }
 
     private void loadFragment(Fragment fragment, int flag) {

@@ -1,8 +1,9 @@
 package com.example.nexresq;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -13,19 +14,33 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.common.api.Status;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.AutocompletePrediction;
-import com.google.android.libraries.places.api.model.RectangularBounds;
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +53,9 @@ public class EmergencyActivity extends AppCompatActivity {
     private RecyclerView suggestionsRecyclerView;
     private SuggestionAdapter suggestionAdapter;
     private PlacesClient placesClient;
+    private double finalLatitude, finalLongitude;
+    private DatabaseReference refUser,ref;
+    private String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +68,12 @@ public class EmergencyActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        userId = GlobalData.getUserId(this);
+        refUser = FirebaseDatabase.getInstance().getReference("user");
+        ref = FirebaseDatabase.getInstance().getReference("user")
+                .child(String.valueOf(userId))
+                .child("emergency");
+
 
         ImageView backImageView = findViewById(R.id.backImageView);
         TextView textView = findViewById(R.id.textView);
@@ -58,7 +82,6 @@ public class EmergencyActivity extends AppCompatActivity {
         suggestionsRecyclerView = findViewById(R.id.suggestionsRecyclerView);
         Button selectLocationButton = findViewById(R.id.selectLocationButton);
         LinearLayout sendRequestLayout = findViewById(R.id.sendRequestLayout);
-
 
         backImageView.setOnClickListener(v -> finish());
 
@@ -73,7 +96,7 @@ public class EmergencyActivity extends AppCompatActivity {
             userLocationEditText.setText(suggestion.getPrimaryText(null).toString());
             suggestionsRecyclerView.setVisibility(View.GONE);
         });
-        
+
         suggestionsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         suggestionsRecyclerView.setAdapter(suggestionAdapter);
 
@@ -87,64 +110,64 @@ public class EmergencyActivity extends AppCompatActivity {
             }
         });
 
-
-        selectLocationButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent MapsActivity = new Intent(EmergencyActivity.this, MapsActivity.class);
-                startActivity(MapsActivity);
-            }
+        selectLocationButton.setOnClickListener(v -> {
+            Intent MapsActivity = new Intent(EmergencyActivity.this, MapsActivity.class);
+            startActivity(MapsActivity);
         });
 
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra("emergencyId")) {
             String emergencyId = intent.getStringExtra("emergencyId");
-            if (emergencyId.equals("1"))
-                textView.setText(" Medical Emergency");
-            else if (emergencyId.equals("2"))
-                textView.setText(" Fire Emergency");
-            else if (emergencyId.equals("3"))
-                textView.setText(" Police Emergency");
 
-            double latitude = intent.getDoubleExtra("latitude", 0.0);
-            double longitude = intent.getDoubleExtra("longitude", 0.0);
+            switch (emergencyId) {
+                case "1": textView.setText("Medical Emergency"); break;
+                case "2": textView.setText("Fire Emergency"); break;
+                case "3": textView.setText("Police Emergency"); break;
+            }
 
-            String userLatLog = "Latitude: " + latitude + " & Longitude: " + longitude;
-            userLatLogTextView.setText(userLatLog);
+            finalLatitude = intent.getDoubleExtra("latitude", 0.0);
+            finalLongitude = intent.getDoubleExtra("longitude", 0.0);
+            userLatLogTextView.setText("Latitude: " + finalLatitude + " & Longitude: " + finalLongitude);
 
-            // API request to update profile on server;
-            String postUrl = GlobalData.BASE_URL+"emergency/create_emergency.php";
+            String postUrl = GlobalData.BASE_URL + "emergency/create_emergency.php";
             Map<String, String> postParams = new HashMap<>();
             postParams.put("userId", GlobalData.getUserId(EmergencyActivity.this));
-            postParams.put("serviceId",emergencyId);
-            postParams.put("priority","Low");
-            postParams.put("latitude",String.valueOf(latitude));
-            postParams.put("longitude",String.valueOf(longitude));
+            postParams.put("serviceId", emergencyId);
+            postParams.put("priority", "Low");
+            postParams.put("latitude", String.valueOf(finalLatitude));
+            postParams.put("longitude", String.valueOf(finalLongitude));
 
-            sendRequestLayout.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
+            //update in realtime database
+            Map<String, Object> emergencyData = new HashMap<>();
+            emergencyData.put("last_updated", System.currentTimeMillis());
+            emergencyData.put("latitude", String.valueOf(finalLatitude));
+            emergencyData.put("longitude", String.valueOf(finalLongitude));
+            emergencyData.put("serviceId", emergencyId);
 
-                    VolleyHelper.sendPostRequest(EmergencyActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {
-                        @Override
-                        public void onSuccess(String response) {
-                            Toast.makeText(EmergencyActivity.this, "Emergency request sent!", Toast.LENGTH_LONG).show();
-                            Log.d("API_SUCCESS", response);
-                        }
+            sendRequestLayout.setOnClickListener(v -> {
+                VolleyHelper.sendPostRequest(EmergencyActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {
+                    @Override
+                    public void onSuccess(String response) {
+                        ref.setValue(emergencyData);
 
-                        @Override
-                        public void onError(String error) {
-                            Toast.makeText(EmergencyActivity.this, "Error: " + error, Toast.LENGTH_LONG).show();
-                            Log.e("API_ERROR", error);
-                        }
-                    });
-                }
+                        Toast.makeText(EmergencyActivity.this, "Emergency request sent!", Toast.LENGTH_LONG).show();
+                        Log.d("API_SUCCESS", response);
+//                        findNearestVolunteers(finalLatitude, finalLongitude, emergencyId); // Call here after success
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Toast.makeText(EmergencyActivity.this, "Error: " + error, Toast.LENGTH_LONG).show();
+                        Log.e("API_ERROR", error);
+                    }
+                });
             });
+
+
         }
-
-
-
     }
+
+
 
     private void fetchSuggestions(String query) {
         if (query.isEmpty()) {
@@ -172,4 +195,109 @@ public class EmergencyActivity extends AppCompatActivity {
                     Toast.makeText(this, "Error fetching location", Toast.LENGTH_SHORT).show();
                 });
     }
+
+    // Start volunteer search
+    public void findNearestVolunteers(double userLat, double userLng, String serviceId) {
+        searchForVolunteers(userLat, userLng, 2000, serviceId);
+    }
+
+    private void searchForVolunteers(double userLat, double userLng, int radiusMeters, String emergencyServiceId) {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("user");
+
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<String> nearbyVolunteers = new ArrayList<>();
+
+                for (DataSnapshot userSnapshot : snapshot.getChildren()) {
+                    Boolean isVolunteer = userSnapshot.child("isVolunteer").getValue(Boolean.class);
+                    Boolean isAvailable = userSnapshot.child("isAvailable").getValue(Boolean.class);
+                    String volunteerServiceId = userSnapshot.child("serviceId").getValue(String.class);
+
+                    if (isVolunteer != null && isVolunteer &&
+                            isAvailable != null && isAvailable &&
+                            volunteerServiceId != null && volunteerServiceId.equals(emergencyServiceId)) {
+
+                        Double lat = userSnapshot.child("locations").child("latitude").getValue(Double.class);
+                        Double lng = userSnapshot.child("locations").child("longitude").getValue(Double.class);
+
+                        if (lat != null && lng != null) {
+                            float[] results = new float[1];
+                            Location.distanceBetween(userLat, userLng, lat, lng, results);
+                            if (results[0] <= radiusMeters) {
+                                nearbyVolunteers.add(userSnapshot.getKey());
+                            }
+                        }
+                    }
+                }
+
+                if (!nearbyVolunteers.isEmpty()) {
+                    Log.d("EMERGENCY", "Volunteers found: " + nearbyVolunteers.size());
+                    sendNotificationsToVolunteers(nearbyVolunteers);
+                } else if (radiusMeters < 10000) {
+                    new Handler().postDelayed(() -> {
+                        searchForVolunteers(userLat, userLng, radiusMeters + 3000, emergencyServiceId);
+                    }, 10000);
+                } else {
+                    Toast.makeText(EmergencyActivity.this, "No volunteer found nearby.", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("FIREBASE", "Error reading user data", error.toException());
+            }
+        });
+    }
+
+
+    private void sendNotificationsToVolunteers(List<String> volunteerIds) {
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("user");
+        for (String userId : volunteerIds) {
+            userRef.child(userId).child("fcmTokens").get().addOnSuccessListener(dataSnapshot -> {
+                if (dataSnapshot.exists()) {
+                    String token = dataSnapshot.getValue(String.class);
+                    sendNotificationToToken(token, "Emergency Alert", "Someone nearby needs help!");
+                }
+            });
+        }
+    }
+
+    public void sendNotificationToToken(String fcmToken, String title, String message) {
+        String serverKey = "YOUR_SERVER_KEY_HERE"; // Replace with your actual FCM server key
+
+        try {
+            RequestQueue requestQueue = Volley.newRequestQueue(this);
+            String url = "https://fcm.googleapis.com/fcm/send";
+
+            JSONObject json = new JSONObject();
+            json.put("to", fcmToken);
+
+            JSONObject notification = new JSONObject();
+            notification.put("title", title);
+            notification.put("body", message);
+
+            json.put("notification", notification);
+            json.put("priority", "high");
+
+            JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, json,
+                    response -> Log.d("FCM", "Notification Sent: " + response),
+                    error -> Log.e("FCM", "Error Sending Notification", error)
+            ) {
+                @Override
+                public Map<String, String> getHeaders() {
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Authorization", "key=" + serverKey);
+                    headers.put("Content-Type", "application/json");
+                    return headers;
+                }
+            };
+
+            requestQueue.add(request);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }

@@ -1,9 +1,12 @@
 package com.example.nexresq;
 
+import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -15,6 +18,8 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -27,6 +32,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -49,6 +57,7 @@ public class LoginActivity extends AppCompatActivity {
     private ProgressDialog progressDialog;
 
     private String verificationId;
+    private DatabaseReference ref;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,6 +84,13 @@ public class LoginActivity extends AppCompatActivity {
         editTextOtp = findViewById(R.id.editTextOtp);
         btnNext = findViewById(R.id.btnNext);
         btnVerify = findViewById(R.id.btnVerify);
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+            }
+        }
 
         btnNext.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -141,7 +157,6 @@ public class LoginActivity extends AppCompatActivity {
                                     editor.putBoolean("isLoggedIn", true);
                                     editor.putString("number", editTextPhone.getText().toString());
 
-
                                     JSONObject jsonObject = null;
 
                                     try {
@@ -154,6 +169,7 @@ public class LoginActivity extends AppCompatActivity {
                                         JSONObject userObject = jsonObject.getJSONObject("user");
                                         String isProfileCompleted = userObject.getString("isProfileCompleted");
 
+
                                         editor.putString("firstName",userObject.getString("firstName"));
                                         editor.putString("lastName",userObject.getString("lastName"));
                                         editor.putString("email",userObject.getString("email"));
@@ -164,6 +180,20 @@ public class LoginActivity extends AppCompatActivity {
                                         editor.putString("isOrganization", userObject.getString("isOrganization"));
                                         editor.apply();
 
+                                        String userId = userObject.getString("userId");
+                                        Map<String, Object> userData = new HashMap<>();
+                                        userData.put("isAvailable", false); // default available
+                                        userData.put("isVolunteer", false);
+
+                                        FirebaseMessaging.getInstance().getToken()
+                                                .addOnCompleteListener(task -> {
+                                                    if (task.isSuccessful()) {
+                                                        String token = task.getResult();
+                                                        userData.put("fcmTokens", token);
+                                                         // Or your primary key
+                                                        FirebaseDatabase.getInstance().getReference("user").child(String.valueOf(userId)).setValue(userData);
+                                                    }
+                                                });
 
                                         Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_LONG).show();
 

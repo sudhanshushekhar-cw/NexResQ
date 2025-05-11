@@ -65,6 +65,9 @@ dependencies {
     // https://firebase.google.com/docs/android/setup#available-libraries
     //Firebase Realtime database
     implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-database:20.3.0")
+    implementation("com.google.firebase:firebase-messaging:23.4.0")// Latest as of 2025
+
 
     //for api request Fast Networking packages
     implementation("com.android.volley:volley:1.2.1")

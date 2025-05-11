@@ -61,8 +61,8 @@ public class HomeFragment extends Fragment {
 
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("MyPrefs", MODE_PRIVATE);
 
-        String isOrganization = sharedPreferences.getString("isOrganization", "0");
-        Toast.makeText(getContext(), isOrganization, Toast.LENGTH_SHORT).show();
+        String isVolunteer = GlobalData.isVolunteer(requireContext());
+        String isOrganization = GlobalData.isOrganization(requireContext());
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
