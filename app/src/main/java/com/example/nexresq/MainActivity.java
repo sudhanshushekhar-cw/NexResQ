@@ -35,8 +35,8 @@ public class MainActivity extends AppCompatActivity {
             window.setStatusBarColor(ContextCompat.getColor(this, R.color.primaryColor));
         }
 
-        Intent serviceIntent = new Intent(MainActivity.this, EmergencyListenerService.class);
-        ContextCompat.startForegroundService(MainActivity.this, serviceIntent);
+//        Intent serviceIntent = new Intent(MainActivity.this, EmergencyListenerService.class);
+//        ContextCompat.startForegroundService(MainActivity.this, serviceIntent);
 
         new Handler().postDelayed(new Runnable() {
             @Override

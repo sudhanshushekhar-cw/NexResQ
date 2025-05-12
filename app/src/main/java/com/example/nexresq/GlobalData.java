@@ -6,8 +6,8 @@ import android.content.SharedPreferences;
 public class GlobalData {
 
         // Server URL
-        // public static String BASE_URL = "https://coachingwood.in/nexresq/";
-        public static String BASE_URL = "http://192.168.1.9/nexresq/";
+         public static String BASE_URL = "https://coachingwood.in/nexresq/";
+//        public static String BASE_URL = "http://192.168.1.11/nexresq/";
 
         // Key Names
         public static final String PREFS_NAME = "MyPrefs";
@@ -15,7 +15,7 @@ public class GlobalData {
         // Example to fetch userId if needed (dynamic)
         public static String getUserId(Context context) {
                 SharedPreferences sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                return sharedPreferences.getString("userId", "no user");  // default blank if not found
+                return sharedPreferences.getString("userId", null);  // default blank if not found
         }
 
         public static String getFirstName(Context context) {

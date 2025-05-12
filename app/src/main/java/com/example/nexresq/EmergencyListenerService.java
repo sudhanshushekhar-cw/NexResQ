@@ -190,9 +190,14 @@ public class EmergencyListenerService extends Service {
     }
 
     private void sendNotificationsToVolunteers(List<String> volunteerIds) {
+        String currentUserId = GlobalData.getUserId(EmergencyListenerService.this);
         for (String userId : volunteerIds) {
-            if (userId.equals(GlobalData.getUserId(EmergencyListenerService.this))) {
-                showEmergencyNotification("Emergency Alert", "Someone nearby needs help! " + userId);
+            if (currentUserId != null){
+                if (userId.equals(currentUserId)) {
+                    showEmergencyNotification("Emergency Alert", "Someone nearby needs help! " + userId);
+                }
+            }else {
+                Log.w(TAG, "Current user ID is null. Skipping self-notification.");
             }
             Log.d(TAG, "Sending notification to volunteer ID: " + userId);
             // TODO: Add FCM push notification logic here

@@ -96,7 +96,6 @@ public class HomeFragment extends Fragment {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         } else {
             startLocationService();
-
             if (emergencyType != null) {
                 fetchLocationAndLaunchActivity(emergencyType);
             }
@@ -105,6 +104,12 @@ public class HomeFragment extends Fragment {
 
     private void startLocationService() {
         Intent serviceIntent = new Intent(getActivity(), LocationService.class);
+        ContextCompat.startForegroundService(requireContext(), serviceIntent);
+        startEmergencyListenerService();
+    }
+
+    private void startEmergencyListenerService() {
+        Intent serviceIntent = new Intent(requireContext(), EmergencyListenerService.class);
         ContextCompat.startForegroundService(requireContext(), serviceIntent);
     }
 
