@@ -17,7 +17,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -25,12 +24,23 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class EmergencyListenerService extends Service {
 
     private static final String CHANNEL_ID = "EmergencyListenerChannel";
     private static final String TAG = "EmergencyService";
+
+    // ✅ Global variables
+    private String lastLat = "";
+    private String lastLng = "";
+    private String lastEmergencyUserId = "";
+    private String lastServiceId = "";
+
+    // ✅ To track first load per user
+    private final Map<String, Boolean> firstLoadMap = new HashMap<>();
 
     @Override
     public void onCreate() {
@@ -73,10 +83,11 @@ public class EmergencyListenerService extends Service {
                 if (userId == null) continue;
 
                 DatabaseReference emergencyRef = refUser.child(userId).child("emergency");
+                firstLoadMap.put(userId, true);  // ✅ Initialize first load flag
 
                 emergencyRef.addValueEventListener(new ValueEventListener() {
-                    String lastLat = "";
-                    String lastLng = "";
+                    String prevLat = "";
+                    String prevLng = "";
 
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -85,13 +96,25 @@ public class EmergencyListenerService extends Service {
                         String latStr = dataSnapshot.child("latitude").getValue(String.class);
                         String lngStr = dataSnapshot.child("longitude").getValue(String.class);
 
-                        if (latStr != null && lngStr != null && (!latStr.equals(lastLat) || !lngStr.equals(lastLng))) {
+                        // ✅ Skip initial load
+                        if (firstLoadMap.getOrDefault(userId, true)) {
+                            firstLoadMap.put(userId, false);
+                            Log.d(TAG, "Initial load skipped for user " + userId);
+                            return;
+                        }
+
+                        if (latStr != null && lngStr != null &&
+                                (!latStr.equals(prevLat) || !lngStr.equals(prevLng))) {
+
+                            prevLat = latStr;
+                            prevLng = lngStr;
                             lastLat = latStr;
                             lastLng = lngStr;
+                            lastEmergencyUserId = userId;
 
                             fetchEmergencyData(dataSnapshot, userId);
                         } else {
-                            Log.d(TAG, "Emergency unchanged for user " + userId);
+                            Log.d(TAG, "No location change for user " + userId);
                         }
                     }
 
@@ -104,7 +127,6 @@ public class EmergencyListenerService extends Service {
         }).addOnFailureListener(e -> Log.e(TAG, "Failed to fetch users: " + e.getMessage()));
     }
 
-
     private void fetchEmergencyData(DataSnapshot emergencySnapshot, String userId) {
         try {
             String latStr = emergencySnapshot.child("latitude").getValue(String.class);
@@ -112,14 +134,13 @@ public class EmergencyListenerService extends Service {
             String serviceId = emergencySnapshot.child("serviceId").getValue(String.class);
 
             if (latStr != null && lngStr != null && serviceId != null) {
-                try {
-                    double lat = Double.parseDouble(latStr);
-                    double lng = Double.parseDouble(lngStr);
-                    Log.d(TAG, "Emergency by user " + userId + " -> Lat: " + lat + ", Lng: " + lng + ", Service ID: " + serviceId);
-                    findNearestVolunteers(lat, lng, serviceId);
-                } catch (NumberFormatException e) {
-                    Log.e(TAG, "Invalid latitude/longitude format: " + latStr + ", " + lngStr, e);
-                }
+                double lat = Double.parseDouble(latStr);
+                double lng = Double.parseDouble(lngStr);
+
+                lastServiceId = serviceId;
+
+                Log.d(TAG, "Emergency by user " + userId + " -> Lat: " + lat + ", Lng: " + lng + ", Service ID: " + serviceId);
+                findNearestVolunteers(lat, lng, serviceId);
             } else {
                 Log.w(TAG, "Emergency data incomplete or invalid.");
             }
@@ -139,7 +160,6 @@ public class EmergencyListenerService extends Service {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 try {
-                    Log.d("DebugFirebase", "Step 1 Com");
                     List<String> nearbyVolunteers = new ArrayList<>();
 
                     for (DataSnapshot userSnapshot : snapshot.getChildren()) {
@@ -148,17 +168,17 @@ public class EmergencyListenerService extends Service {
                         String volunteerServiceId = userSnapshot.child("serviceId").getValue(String.class);
 
                         if (Boolean.TRUE.equals(isVolunteer) && Boolean.TRUE.equals(isAvailable) &&
-                                volunteerServiceId != null && volunteerServiceId.equals(emergencyServiceId)) {
+                                emergencyServiceId.equals(volunteerServiceId)) {
 
-                            Double latNum = userSnapshot.child("locations").child("latitude").getValue(Double.class);
-                            Double lngNum = userSnapshot.child("locations").child("longitude").getValue(Double.class);
+                            Double lat = userSnapshot.child("locations").child("latitude").getValue(Double.class);
+                            Double lng = userSnapshot.child("locations").child("longitude").getValue(Double.class);
 
-                            if (latNum != null && lngNum != null) {
+                            if (lat != null && lng != null) {
                                 float[] results = new float[1];
-                                Location.distanceBetween(userLat, userLng, latNum, lngNum, results);
+                                Location.distanceBetween(userLat, userLng, lat, lng, results);
 
                                 if (results[0] <= radiusMeters) {
-                                    Log.d(TAG, "Volunteer found within " + results[0] + "m: " + userSnapshot.getKey());
+                                    Log.d(TAG, "Volunteer within " + results[0] + "m: " + userSnapshot.getKey());
                                     nearbyVolunteers.add(userSnapshot.getKey());
                                 }
                             }
@@ -166,17 +186,15 @@ public class EmergencyListenerService extends Service {
                     }
 
                     if (!nearbyVolunteers.isEmpty()) {
-                        Log.d(TAG, "Volunteers found: " + nearbyVolunteers.size());
                         sendNotificationsToVolunteers(nearbyVolunteers);
                     } else if (radiusMeters < 10000) {
-                        Log.d(TAG, "No volunteers found within " + radiusMeters + "m. Expanding search...");
+                        Log.d(TAG, "No volunteers within " + radiusMeters + "m. Expanding...");
                         new Handler(getMainLooper()).postDelayed(() ->
-                                        searchForVolunteers(userLat, userLng, radiusMeters + 3000, emergencyServiceId),
-                                10000);
+                                searchForVolunteers(userLat, userLng, radiusMeters + 3000, emergencyServiceId), 10000);
                     } else {
-                        Log.d(TAG, "Stop - No volunteer found nearby " + nearbyVolunteers.size());
-                                Toast.makeText(getApplicationContext(), "No volunteer found nearby.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "No volunteer found nearby.", Toast.LENGTH_SHORT).show();
                     }
+
                 } catch (Exception e) {
                     Log.e(TAG, "Volunteer search failed: " + e.getMessage(), e);
                 }
@@ -184,37 +202,37 @@ public class EmergencyListenerService extends Service {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Firebase read error: ", error.toException());
+                Log.e(TAG, "Firebase error: ", error.toException());
             }
         });
     }
 
     private void sendNotificationsToVolunteers(List<String> volunteerIds) {
         String currentUserId = GlobalData.getUserId(EmergencyListenerService.this);
-        for (String userId : volunteerIds) {
-            if (currentUserId != null){
-                if (userId.equals(currentUserId)) {
-                    showEmergencyNotification("Emergency Alert", "Someone nearby needs help! " + userId);
-                }
-            }else {
-                Log.w(TAG, "Current user ID is null. Skipping self-notification.");
+
+        for (String userIdVol : volunteerIds) {
+            if (currentUserId != null && userIdVol.equals(currentUserId)) {
+                showEmergencyNotification("Emergency Alert", "Someone nearby needs help!",
+                        lastEmergencyUserId, lastLat, lastLng, lastServiceId);
             }
-            Log.d(TAG, "Sending notification to volunteer ID: " + userId);
-            // TODO: Add FCM push notification logic here
+            Log.d(TAG, "Notification sent to: " + userIdVol);
+            // Optional: Send FCM here
         }
     }
 
-    private void showEmergencyNotification(String title, String message) {
-        Log.d(TAG, "Displaying notification: " + title + " - " + message);
+    private void showEmergencyNotification(String title, String message, String userId,
+                                           String latitude, String longitude, String serviceId) {
 
-        Intent intent = new Intent(this, HomeActivity.class);
+        Intent intent = new Intent(this, EmergencyResponse.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        intent.putExtra("fromNotification", true);  // Optional: pass extra data
+        intent.putExtra("fromNotification", true);
+        intent.putExtra("userId", userId);
+        intent.putExtra("latitude", latitude);
+        intent.putExtra("longitude", longitude);
+        intent.putExtra("serviceId", serviceId); // ✅ Include serviceId in intent
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                intent,
+                this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
@@ -230,11 +248,8 @@ public class EmergencyListenerService extends Service {
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (manager != null) {
             manager.notify((int) System.currentTimeMillis(), notification);
-        } else {
-            Log.e(TAG, "NotificationManager is null. Notification not shown.");
         }
     }
-
 
     private Notification createForegroundNotification(String contentText) {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -256,9 +271,8 @@ public class EmergencyListenerService extends Service {
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
-            } else {
-                Log.e(TAG, "NotificationManager is null. Channel not created.");
             }
         }
     }
+
 }

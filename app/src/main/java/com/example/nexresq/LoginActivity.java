@@ -23,6 +23,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.firebase.BuildConfig;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -53,6 +54,7 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.login), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -115,6 +117,15 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void sendVerificationCode(String phoneNumber) {
+        if (BuildConfig.DEBUG) {
+            // Fake test verification ID for Firebase testing numbers
+            verificationId = "TEST_VERIFICATION_ID";
+            textViewSubTitle.setText("Enter the test OTP (set in Firebase console)");
+            textViewSubTitle.setTextColor(Color.GRAY);
+            textViewSubTitle.setVisibility(View.VISIBLE);
+            return;
+        }
+
         PhoneAuthOptions options = PhoneAuthOptions.newBuilder(mAuth)
                 .setPhoneNumber(phoneNumber)
                 .setTimeout(60L, TimeUnit.SECONDS)
@@ -148,7 +159,14 @@ public class LoginActivity extends AppCompatActivity {
     };
 
     private void verifyCode(String code) {
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
+        PhoneAuthCredential credential;
+
+        if (BuildConfig.DEBUG) {
+            credential = PhoneAuthProvider.getCredential("TEST_VERIFICATION_ID", code);
+        } else {
+            credential = PhoneAuthProvider.getCredential(verificationId, code);
+        }
+
         signInWithCredential(credential);
     }
 
