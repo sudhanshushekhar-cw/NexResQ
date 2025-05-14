@@ -143,6 +143,7 @@ public class EmergencyActivity extends AppCompatActivity {
             emergencyData.put("latitude", String.valueOf(finalLatitude));
             emergencyData.put("longitude", String.valueOf(finalLongitude));
             emergencyData.put("serviceId", emergencyId);
+            emergencyData.put("status", "Pending");
 
             sendRequestLayout.setOnClickListener(v -> {
                 VolleyHelper.sendPostRequest(EmergencyActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {

@@ -199,7 +199,7 @@ public class LoginActivity extends AppCompatActivity {
                             editor.putString("isOrganization", userObject.getString("isOrganization"));
                             editor.apply();
 
-                            updateFirebaseUser(userObject.getString("userId"), userObject.getString("isVolunteer"));
+                            updateFirebaseUser(userObject.getString("userId"), userObject.getString("isVolunteer"), userObject.getString("serviceId"));
 
                             progressDialog.dismiss();
                             if (userObject.getString("isProfileCompleted").equals("0")) {
@@ -232,10 +232,15 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void updateFirebaseUser(String userId, String isVolunteer) {
+    private void updateFirebaseUser(String userId, String isVolunteer,  String serviceId) {
         Map<String, Object> userData = new HashMap<>();
-        userData.put("isAvailable", false);
+        if(isVolunteer.equals("1")){
+            userData.put("isAvailable", true);
+        }else{
+            userData.put("isAvailable", false);
+        }
         userData.put("isVolunteer", isVolunteer.equals("1"));
+        userData.put("serviceId", serviceId);
 
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {

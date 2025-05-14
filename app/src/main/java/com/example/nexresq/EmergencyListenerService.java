@@ -33,13 +33,11 @@ public class EmergencyListenerService extends Service {
     private static final String CHANNEL_ID = "EmergencyListenerChannel";
     private static final String TAG = "EmergencyService";
 
-    // ✅ Global variables
     private String lastLat = "";
     private String lastLng = "";
     private String lastEmergencyUserId = "";
     private String lastServiceId = "";
 
-    // ✅ To track first load per user
     private final Map<String, Boolean> firstLoadMap = new HashMap<>();
 
     @Override
@@ -50,7 +48,7 @@ public class EmergencyListenerService extends Service {
             Log.e("GlobalCrash", "Unhandled exception in thread " + thread.getName(), e);
         });
 
-        Log.d(TAG, "Service created and running...");
+        Log.d(TAG, "[TEST] Service created and running...");
         createNotificationChannel();
         startForeground(1, createForegroundNotification("Listening for emergencies..."));
 
@@ -59,13 +57,14 @@ public class EmergencyListenerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "[TEST] onStartCommand received");
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "EmergencyListenerService stopped");
+        Log.d(TAG, "[TEST] EmergencyListenerService stopped");
     }
 
     @Nullable
@@ -82,8 +81,10 @@ public class EmergencyListenerService extends Service {
                 String userId = userSnapshot.getKey();
                 if (userId == null) continue;
 
+                Log.d(TAG, "[TEST] Listening for emergency updates from user: " + userId);
+
                 DatabaseReference emergencyRef = refUser.child(userId).child("emergency");
-                firstLoadMap.put(userId, true);  // ✅ Initialize first load flag
+                firstLoadMap.put(userId, true);
 
                 emergencyRef.addValueEventListener(new ValueEventListener() {
                     String prevLat = "";
@@ -96,10 +97,11 @@ public class EmergencyListenerService extends Service {
                         String latStr = dataSnapshot.child("latitude").getValue(String.class);
                         String lngStr = dataSnapshot.child("longitude").getValue(String.class);
 
-                        // ✅ Skip initial load
+                        Log.d(TAG, "[TEST] Data change detected for user: " + userId + " -> Lat: " + latStr + ", Lng: " + lngStr);
+
                         if (firstLoadMap.getOrDefault(userId, true)) {
                             firstLoadMap.put(userId, false);
-                            Log.d(TAG, "Initial load skipped for user " + userId);
+                            Log.d(TAG, "[TEST] Initial load skipped for user " + userId);
                             return;
                         }
 
@@ -114,17 +116,17 @@ public class EmergencyListenerService extends Service {
 
                             fetchEmergencyData(dataSnapshot, userId);
                         } else {
-                            Log.d(TAG, "No location change for user " + userId);
+                            Log.d(TAG, "[TEST] No location change for user " + userId);
                         }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        Log.e(TAG, "Error observing emergency for user " + userId + ": " + error.getMessage());
+                        Log.e(TAG, "[TEST] Error observing emergency for user " + userId + ": " + error.getMessage());
                     }
                 });
             }
-        }).addOnFailureListener(e -> Log.e(TAG, "Failed to fetch users: " + e.getMessage()));
+        }).addOnFailureListener(e -> Log.e(TAG, "[TEST] Failed to fetch users: " + e.getMessage()));
     }
 
     private void fetchEmergencyData(DataSnapshot emergencySnapshot, String userId) {
@@ -133,27 +135,32 @@ public class EmergencyListenerService extends Service {
             String lngStr = emergencySnapshot.child("longitude").getValue(String.class);
             String serviceId = emergencySnapshot.child("serviceId").getValue(String.class);
 
+            Log.d(TAG, "[TEST] Processing emergency data for userId: " + userId);
+
             if (latStr != null && lngStr != null && serviceId != null) {
                 double lat = Double.parseDouble(latStr);
                 double lng = Double.parseDouble(lngStr);
 
                 lastServiceId = serviceId;
 
-                Log.d(TAG, "Emergency by user " + userId + " -> Lat: " + lat + ", Lng: " + lng + ", Service ID: " + serviceId);
+                Log.d(TAG, "[TEST] Emergency details -> Lat: " + lat + ", Lng: " + lng + ", Service ID: " + serviceId);
                 findNearestVolunteers(lat, lng, serviceId);
             } else {
-                Log.w(TAG, "Emergency data incomplete or invalid.");
+                Log.w(TAG, "[TEST] Emergency data incomplete or invalid.");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error while processing emergency data: " + e.getMessage(), e);
+            Log.e(TAG, "[TEST] Error while processing emergency data: " + e.getMessage(), e);
         }
     }
 
     public void findNearestVolunteers(double userLat, double userLng, String serviceId) {
+        Log.d(TAG, "[TEST] Finding volunteers near Lat: " + userLat + ", Lng: " + userLng);
         searchForVolunteers(userLat, userLng, 2000, serviceId);
     }
 
     private void searchForVolunteers(double userLat, double userLng, int radiusMeters, String emergencyServiceId) {
+        Log.d(TAG, "[TEST] Searching for volunteers within " + radiusMeters + " meters for serviceId: " + emergencyServiceId);
+
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("user");
 
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -163,9 +170,12 @@ public class EmergencyListenerService extends Service {
                     List<String> nearbyVolunteers = new ArrayList<>();
 
                     for (DataSnapshot userSnapshot : snapshot.getChildren()) {
+                        String uid = userSnapshot.getKey();
                         Boolean isVolunteer = userSnapshot.child("isVolunteer").getValue(Boolean.class);
                         Boolean isAvailable = userSnapshot.child("isAvailable").getValue(Boolean.class);
                         String volunteerServiceId = userSnapshot.child("serviceId").getValue(String.class);
+
+                        Log.d(TAG, "[TEST] Checking user: " + uid + ", isVolunteer=" + isVolunteer + ", isAvailable=" + isAvailable + ", serviceId=" + volunteerServiceId);
 
                         if (Boolean.TRUE.equals(isVolunteer) && Boolean.TRUE.equals(isAvailable) &&
                                 emergencyServiceId.equals(volunteerServiceId)) {
@@ -177,51 +187,89 @@ public class EmergencyListenerService extends Service {
                                 float[] results = new float[1];
                                 Location.distanceBetween(userLat, userLng, lat, lng, results);
 
+                                Log.d(TAG, "[TEST] Distance to " + uid + ": " + results[0]);
+
                                 if (results[0] <= radiusMeters) {
-                                    Log.d(TAG, "Volunteer within " + results[0] + "m: " + userSnapshot.getKey());
-                                    nearbyVolunteers.add(userSnapshot.getKey());
+                                    nearbyVolunteers.add(uid);
                                 }
                             }
                         }
                     }
 
                     if (!nearbyVolunteers.isEmpty()) {
-                        sendNotificationsToVolunteers(nearbyVolunteers);
+                        Log.d(TAG, "[TEST] Nearby volunteers: " + nearbyVolunteers);
+                        sendNotificationsToVolunteers(nearbyVolunteers, userLat, userLng, radiusMeters, emergencyServiceId);
                     } else if (radiusMeters < 10000) {
-                        Log.d(TAG, "No volunteers within " + radiusMeters + "m. Expanding...");
+                        Log.d(TAG, "[TEST] No nearby volunteers found. Expanding search radius.");
                         new Handler(getMainLooper()).postDelayed(() ->
                                 searchForVolunteers(userLat, userLng, radiusMeters + 3000, emergencyServiceId), 10000);
                     } else {
+                        Log.d(TAG, "[TEST] No volunteers found even after expanding radius.");
                         Toast.makeText(getApplicationContext(), "No volunteer found nearby.", Toast.LENGTH_SHORT).show();
                     }
 
                 } catch (Exception e) {
-                    Log.e(TAG, "Volunteer search failed: " + e.getMessage(), e);
+                    Log.e(TAG, "[TEST] Volunteer search failed: " + e.getMessage(), e);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Firebase error: ", error.toException());
+                Log.e(TAG, "[TEST] Firebase error: ", error.toException());
             }
         });
     }
 
-    private void sendNotificationsToVolunteers(List<String> volunteerIds) {
+    private void sendNotificationsToVolunteers(List<String> volunteerIds, double userLat, double userLng,
+                                               int radiusMeters, String serviceId) {
         String currentUserId = GlobalData.getUserId(EmergencyListenerService.this);
 
         for (String userIdVol : volunteerIds) {
+            Log.d(TAG, "[TEST] Notifying volunteer: " + userIdVol);
+
             if (currentUserId != null && userIdVol.equals(currentUserId)) {
+                Log.d(TAG, "[TEST] Current device user is volunteer, sending notification");
+
                 showEmergencyNotification("Emergency Alert", "Someone nearby needs help!",
                         lastEmergencyUserId, lastLat, lastLng, lastServiceId);
+
+                new Handler(getMainLooper()).postDelayed(() -> {
+                    checkIfEmergencyAccepted(currentUserId, (isAccepted) -> {
+                        Log.d(TAG, "[TEST] Emergency accepted by current user? " + isAccepted);
+
+                        if (!isAccepted && radiusMeters < 10000) {
+                            searchForVolunteers(userLat, userLng, radiusMeters + 3000, serviceId);
+                        } else if (!isAccepted) {
+                            Log.d(TAG, "[TEST] No volunteers accepted the emergency.");
+                        }
+                    });
+                }, 20000);
             }
-            Log.d(TAG, "Notification sent to: " + userIdVol);
-            // Optional: Send FCM here
         }
+    }
+
+    private void checkIfEmergencyAccepted(String userId, EmergencyAcceptanceCallback callback) {
+        Log.d(TAG, "[TEST] Checking emergencyAccepted status for user: " + userId);
+
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("user").child(userId).child("emergencyAccepted");
+
+        ref.get().addOnSuccessListener(snapshot -> {
+            Boolean isAccepted = snapshot.getValue(Boolean.class);
+            callback.onResult(Boolean.TRUE.equals(isAccepted));
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "[TEST] Failed to check emergency accepted: " + e.getMessage());
+            callback.onResult(false);
+        });
+    }
+
+    interface EmergencyAcceptanceCallback {
+        void onResult(boolean isAccepted);
     }
 
     private void showEmergencyNotification(String title, String message, String userId,
                                            String latitude, String longitude, String serviceId) {
+
+        Log.d(TAG, "[TEST] Showing emergency notification to user");
 
         Intent intent = new Intent(this, EmergencyResponse.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -229,7 +277,7 @@ public class EmergencyListenerService extends Service {
         intent.putExtra("userId", userId);
         intent.putExtra("latitude", latitude);
         intent.putExtra("longitude", longitude);
-        intent.putExtra("serviceId", serviceId); // ✅ Include serviceId in intent
+        intent.putExtra("serviceId", serviceId);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this, 0, intent,
