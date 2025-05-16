@@ -149,7 +149,15 @@ public class EmergencyActivity extends AppCompatActivity {
                 VolleyHelper.sendPostRequest(EmergencyActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {
                     @Override
                     public void onSuccess(String response) {
-                        ref.setValue(emergencyData);
+                        ref.setValue(emergencyData).addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                Log.d("FirebaseDB", "Emergency data updated successfully in Realtime Database.");
+                                Toast.makeText(EmergencyActivity.this, "Emergency request sent!", Toast.LENGTH_LONG).show();
+                            } else {
+                                Log.e("FirebaseDB", "Failed to update emergency data: " + task.getException());
+                                Toast.makeText(EmergencyActivity.this, "Failed to update emergency data", Toast.LENGTH_LONG).show();
+                            }
+                        });
 
                         Toast.makeText(EmergencyActivity.this, "Emergency request sent!", Toast.LENGTH_LONG).show();
                         Log.d("API_SUCCESS", response);

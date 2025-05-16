@@ -43,7 +43,6 @@ public class EmergencyListenerService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
         Thread.setDefaultUncaughtExceptionHandler((thread, e) -> {
             Log.e("GlobalCrash", "Unhandled exception in thread " + thread.getName(), e);
         });
@@ -126,7 +125,7 @@ public class EmergencyListenerService extends Service {
                     }
                 });
             }
-        }).addOnFailureListener(e -> Log.e(TAG, "[TEST] Failed to fetch users: " + e.getMessage()));
+        }).addOnFailureListener(e -> Log.e(TAG, "[] FaTESTiled to fetch users: " + e.getMessage()));
     }
 
     private void fetchEmergencyData(DataSnapshot emergencySnapshot, String userId) {
