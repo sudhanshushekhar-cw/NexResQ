@@ -40,6 +40,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -149,6 +150,16 @@ public class EmergencyActivity extends AppCompatActivity {
                 VolleyHelper.sendPostRequest(EmergencyActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {
                     @Override
                     public void onSuccess(String response) {
+                        JSONObject jsonObject = null;
+                        try {
+                            jsonObject = new JSONObject(response);
+                            String emergencyId = jsonObject.getString("emergencyId");
+                            emergencyData.put("emergencyId", emergencyId);
+
+                        } catch (JSONException e) {
+                            throw new RuntimeException(e);
+                        }
+
                         ref.setValue(emergencyData).addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
                                 Log.d("FirebaseDB", "Emergency data updated successfully in Realtime Database.");
@@ -171,8 +182,6 @@ public class EmergencyActivity extends AppCompatActivity {
                     }
                 });
             });
-
-
         }
     }
 

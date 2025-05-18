@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -53,6 +54,7 @@ public class EmergencyResponse extends FragmentActivity implements OnMapReadyCal
     private double latEme;
     private double lonEme;
     private String userIdEme;
+    private String emergencyId;
 
     private TextView distanceTextView;
     private LatLng currentLatLng;
@@ -72,6 +74,7 @@ public class EmergencyResponse extends FragmentActivity implements OnMapReadyCal
 
         Intent intent = getIntent();
         userIdEme = intent.getStringExtra("userId");
+        emergencyId = intent.getStringExtra("emergencyId");
         latEme = Double.parseDouble(intent.getStringExtra("latitude"));
         lonEme = Double.parseDouble(intent.getStringExtra("longitude"));
         emergencyLatLng = new LatLng(latEme, lonEme);
@@ -79,22 +82,66 @@ public class EmergencyResponse extends FragmentActivity implements OnMapReadyCal
         TextView addressTextView = findViewById(R.id.addressTextView);
         distanceTextView = findViewById(R.id.distanceTextView);
         Button acceptButton = findViewById(R.id.acceptButton);
-        addressTextView.setText(lonEme + " , " + latEme);
+        addressTextView.setText("Loading....");
 
         DatabaseReference ref = FirebaseDatabase.getInstance()
                 .getReference("user")
                 .child(userIdEme)
                 .child("emergency");
 
+        String apiKey = getString(R.string.google_maps_key);
+        String GOOGLE_GEOCODING_URL = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latEme + "," + lonEme + "&key=" + apiKey;
+
+        VolleyHelper.sendGetRequest(EmergencyResponse.this, GOOGLE_GEOCODING_URL, new VolleyHelper.VolleyCallback() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    JSONObject jsonObject = new JSONObject(response);
+                    JSONArray results = jsonObject.getJSONArray("results");
+                    if (results.length() > 0) {
+                        String address = results.getJSONObject(0).getString("formatted_address");
+                         addressTextView.setText(address);
+                    } else {
+                        Log.d("Geocoding", "No address found");
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    Log.e("GeocodingError", "Parsing error: " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e("VolleyError", error);
+            }
+        });
+
+
+        String POST_URL = GlobalData.BASE_URL + "emergency/update_emergency_status.php";
+        Map<String, String> postParams = new HashMap<>();
+        postParams.put("emergencyId", emergencyId);
+        postParams.put("volunteerId", GlobalData.getUserId(EmergencyResponse.this));
+
         acceptButton.setOnClickListener(v -> {
             Map<String, Object> update = new HashMap<>();
             update.put("status", "Accepted");
-            ref.updateChildren(update)
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(EmergencyResponse.this, "Status updated", Toast.LENGTH_SHORT).show();
-                        fetchRouteAndDrawWithVolley();  // <-- Call it here!
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(EmergencyResponse.this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            VolleyHelper.sendPostRequest(EmergencyResponse.this, POST_URL, postParams, new VolleyHelper.VolleyCallback() {
+                @Override
+                public void onSuccess(String response) {
+                    ref.updateChildren(update)
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(EmergencyResponse.this, "Status updated", Toast.LENGTH_SHORT).show();
+                                fetchRouteAndDrawWithVolley();  // <-- Call it here!
+                            })
+                            .addOnFailureListener(e -> Toast.makeText(EmergencyResponse.this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                }
+                @Override
+                public void onError(String error) {
+                    Log.e("VolleyPostError", "Error: " + error); // Add this line
+                    Toast.makeText(EmergencyResponse.this, "Some Error Occurred", Toast.LENGTH_SHORT).show();
+                }
+            });
+
         });
 
         GlobalData.getLastKnownLocation(this, location -> {

@@ -37,6 +37,7 @@ public class EmergencyListenerService extends Service {
     private String lastLng = "";
     private String lastEmergencyUserId = "";
     private String lastServiceId = "";
+    private String emergencyId = "";
 
     private final Map<String, Boolean> firstLoadMap = new HashMap<>();
 
@@ -95,6 +96,7 @@ public class EmergencyListenerService extends Service {
 
                         String latStr = dataSnapshot.child("latitude").getValue(String.class);
                         String lngStr = dataSnapshot.child("longitude").getValue(String.class);
+                        String emeId = dataSnapshot.child("emergencyId").getValue(String.class);
 
                         Log.d(TAG, "[TEST] Data change detected for user: " + userId + " -> Lat: " + latStr + ", Lng: " + lngStr);
 
@@ -112,6 +114,7 @@ public class EmergencyListenerService extends Service {
                             lastLat = latStr;
                             lastLng = lngStr;
                             lastEmergencyUserId = userId;
+                            emergencyId = emeId;
 
                             fetchEmergencyData(dataSnapshot, userId);
                         } else {
@@ -230,7 +233,7 @@ public class EmergencyListenerService extends Service {
                 Log.d(TAG, "[TEST] Current device user is volunteer, sending notification");
 
                 showEmergencyNotification("Emergency Alert", "Someone nearby needs help!",
-                        lastEmergencyUserId, lastLat, lastLng, lastServiceId);
+                        lastEmergencyUserId, lastLat, lastLng, lastServiceId, emergencyId);
 
                 new Handler(getMainLooper()).postDelayed(() -> {
                     checkIfEmergencyAccepted(currentUserId, (isAccepted) -> {
@@ -266,7 +269,7 @@ public class EmergencyListenerService extends Service {
     }
 
     private void showEmergencyNotification(String title, String message, String userId,
-                                           String latitude, String longitude, String serviceId) {
+                                           String latitude, String longitude, String serviceId, String emergencyId) {
 
         Log.d(TAG, "[TEST] Showing emergency notification to user");
 
@@ -277,6 +280,7 @@ public class EmergencyListenerService extends Service {
         intent.putExtra("latitude", latitude);
         intent.putExtra("longitude", longitude);
         intent.putExtra("serviceId", serviceId);
+        intent.putExtra("emergencyId", emergencyId);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this, 0, intent,

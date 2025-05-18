@@ -27,6 +27,12 @@ import androidx.fragment.app.Fragment;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
 import androidx.appcompat.app.AlertDialog;
 
 public class HomeFragment extends Fragment {
@@ -53,6 +59,12 @@ public class HomeFragment extends Fragment {
 
     public HomeFragment() {
         // Required empty public constructor
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        refreshCardData();  // 👈 Custom method to update card data
     }
 
     @Override
@@ -182,4 +194,32 @@ public class HomeFragment extends Fragment {
             startActivity(intent);
         });
     }
+
+    private void refreshCardData() {
+        DatabaseReference ref = FirebaseDatabase.getInstance()
+                .getReference("user")
+                .child(GlobalData.getUserId(requireContext())).child("emergency");  // Or your correct node
+
+//        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                if (snapshot.exists()) {
+//                    String status = snapshot.child("status").getValue(String.class);
+//                    String location = snapshot.child("location").getValue(String.class);
+//
+//                    TextView statusText = getView().findViewById(R.id.statusTextView);
+//                    TextView locationText = getView().findViewById(R.id.locationTextView);
+//
+//                    statusText.setText(status);
+//                    locationText.setText(location);
+//                }
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//                Toast.makeText(requireContext(), "Failed to load data", Toast.LENGTH_SHORT).show();
+//            }
+//        });
+    }
+
 }
