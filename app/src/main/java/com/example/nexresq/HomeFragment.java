@@ -14,6 +14,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -35,11 +38,23 @@ import com.google.firebase.database.ValueEventListener;
 
 import androidx.appcompat.app.AlertDialog;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class HomeFragment extends Fragment {
 
     private static final String TAG = "HomeFragment";
     private FusedLocationProviderClient fusedLocationClient;
     private String selectedEmergencyType;
+
+    private LinearLayout emergencyStatusLinearLayout;
+    private TextView volunteerNameTextView;
+    private ImageView callIcon;
+    private TextView emergencyIdTextView;
+    private CardView emergencyStatusCard;
 
     private final ActivityResultLauncher<String> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -82,6 +97,12 @@ public class HomeFragment extends Fragment {
         CardView fireCard = view.findViewById(R.id.fireCard);
         CardView policeCard = view.findViewById(R.id.policeCard);
         CardView becomeVolunteerCard = view.findViewById(R.id.becomeVolunteerCard);
+
+        emergencyStatusLinearLayout = view.findViewById(R.id.emergencyStatusLinearLayout);
+        volunteerNameTextView = view.findViewById(R.id.volunteerNameTextView);
+        callIcon = view.findViewById(R.id.callIcon);
+        emergencyIdTextView = view.findViewById(R.id.emergencyIdTextView);
+        emergencyStatusCard = view.findViewById(R.id.emergencyStatusCard);
 
         // Check permission once on load
         requestLocationPermission(null);
@@ -200,26 +221,83 @@ public class HomeFragment extends Fragment {
                 .getReference("user")
                 .child(GlobalData.getUserId(requireContext())).child("emergency");  // Or your correct node
 
-//        ref.addListenerForSingleValueEvent(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                if (snapshot.exists()) {
-//                    String status = snapshot.child("status").getValue(String.class);
-//                    String location = snapshot.child("location").getValue(String.class);
-//
-//                    TextView statusText = getView().findViewById(R.id.statusTextView);
-//                    TextView locationText = getView().findViewById(R.id.locationTextView);
-//
-//                    statusText.setText(status);
-//                    locationText.setText(location);
-//                }
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//                Toast.makeText(requireContext(), "Failed to load data", Toast.LENGTH_SHORT).show();
-//            }
-//        });
-    }
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String status = snapshot.child("status").getValue(String.class);
+                    String volunteerId = snapshot.child("volunteerId").getValue(String.class);
+                    String emergencyId = snapshot.child("emergencyId").getValue(String.class);
+                    String POST_URL = GlobalData.BASE_URL + "user/get_user_details.php";
+                    Map<String, String> params = new HashMap<>();
+                    params.put("userId", volunteerId);
+                    VolleyHelper.sendPostRequest(requireContext(), POST_URL, params, new VolleyHelper.VolleyCallback() {
+                        @Override
+                        public void onSuccess(String response) {
+                            Log.d(TAG, "Response userr: " + response);
+                            try {
+                                JSONObject jsonObject = new JSONObject(response);
 
+                                String statusCode = jsonObject.getString("status");
+                                if ("success".equalsIgnoreCase(statusCode)) {
+                                    JSONObject dataObject = jsonObject.getJSONObject("data");
+
+                                    String firstName = dataObject.getString("firstName");
+                                    String lastName = dataObject.getString("lastName");
+                                    String volunteerPhoneNumber = dataObject.getString("number");
+
+                                    String fullName = firstName + " " + lastName;
+                                    volunteerNameTextView.setText(fullName);
+                                    emergencyIdTextView.setText("#" + emergencyId);
+
+                                    if ("Accepted".equals(status)) {
+                                        emergencyStatusLinearLayout.setVisibility(View.VISIBLE);
+                                        // Set click listener to open dialer
+                                        callIcon.setOnClickListener(v -> {
+                                            if (volunteerPhoneNumber != null && !volunteerPhoneNumber.isEmpty()) {
+                                                Intent dialIntent = new Intent(Intent.ACTION_DIAL);
+                                                dialIntent.setData(Uri.parse("tel:" + volunteerPhoneNumber));
+                                                startActivity(dialIntent);
+                                            } else {
+                                                Toast.makeText(requireContext(), "Phone number not available", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+
+                                        emergencyStatusCard.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View v) {
+                                                Intent intent = new Intent(requireContext(), MapsActivity.class);
+                                                intent.putExtra("userIdEme",GlobalData.getUserId(requireContext()));
+                                                startActivity(intent);
+                                            }
+                                        });
+
+                                    } else {
+                                        emergencyStatusLinearLayout.setVisibility(View.GONE);
+                                    }
+                                } else {
+                                    Log.e(TAG, "Failed to fetch user data: " + jsonObject.getString("message"));
+                                }
+
+                            } catch (JSONException e) {
+                                Log.e(TAG, "JSON parsing error: " + e.getMessage());
+                            }
+                        }
+
+
+                        @Override
+                        public void onError(String error) {
+
+                        }
+                    });
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(requireContext(), "Failed to load data", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 }

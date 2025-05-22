@@ -138,7 +138,7 @@ public class LocationService extends Service {
                     locationMap.put("longitude", lng);
                     locationMap.put("latitude", lat);
 
-//                    ref.setValue(locationMap);
+                    ref.setValue(locationMap);
                     Log.d("MY LOC", "✅ Firebase Updated - Lat: " + lat + ", Lng: " + lng + ", Distance: " + distanceInMeters);
                 } else {
                     Log.d("MY LOC", "⏩ Skipped update. Distance moved: " + distanceInMeters + "m");

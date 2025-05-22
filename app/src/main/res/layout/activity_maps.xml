@@ -27,30 +27,35 @@
         android:elevation="8dp">
 
         <TextView
-            android:id="@+id/locationTextView"
+            android:id="@+id/distanceTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Picked Location"
+            android:text="Distance (KM) "
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@android:color/black" />
 
         <TextView
-            android:id="@+id/coordinatesTextView"
+            android:id="@+id/addressTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Lat: ---, Lng: ---"
-            android:textSize="14sp"
+            android:text="Address Loading... "
+            android:textSize="18sp"
             android:textColor="@android:color/darker_gray"
+            android:textStyle="bold"
             android:layout_marginTop="8dp" />
 
-        <Button
-            android:id="@+id/selectLocationButton"
-            android:layout_width="match_parent"
+        <Switch
+            android:id="@+id/switchButton"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Select This Location"
-            android:layout_marginTop="20dp"
-            android:backgroundTint="@color/purple_500"
-            android:textColor="@android:color/white" />
+            android:text="Enable traffic Alert"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="#189D3E"
+            android:checked="false"
+            android:layout_marginTop="32dp" />
+
+
     </LinearLayout>
 </LinearLayout>

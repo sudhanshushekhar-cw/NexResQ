@@ -1,15 +1,20 @@
 package com.example.nexresq;
 
+import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,6 +29,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.airbnb.lottie.LottieAnimationView;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -33,6 +39,7 @@ import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.AutocompletePrediction;
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -57,6 +64,9 @@ public class EmergencyActivity extends AppCompatActivity {
     private double finalLatitude, finalLongitude;
     private DatabaseReference refUser,ref;
     private String userId;
+    private View sheetView;
+    private ObjectAnimator progressAnimator;
+    private BottomSheetDialog bottomSheetDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,11 +121,6 @@ public class EmergencyActivity extends AppCompatActivity {
             }
         });
 
-        selectLocationButton.setOnClickListener(v -> {
-            Intent MapsActivity = new Intent(EmergencyActivity.this, MapsActivity.class);
-            startActivity(MapsActivity);
-        });
-
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra("emergencyId")) {
             String emergencyId = intent.getStringExtra("emergencyId");
@@ -147,6 +152,8 @@ public class EmergencyActivity extends AppCompatActivity {
             emergencyData.put("status", "Pending");
 
             sendRequestLayout.setOnClickListener(v -> {
+                sheetView =  LayoutInflater.from(getApplicationContext()).inflate(R.layout.bottom_sheet_vol_search, null);
+                showBottomSheet(sheetView, true);
                 VolleyHelper.sendPostRequest(EmergencyActivity.this, postUrl, postParams, new VolleyHelper.VolleyCallback() {
                     @Override
                     public void onSuccess(String response) {
@@ -162,6 +169,7 @@ public class EmergencyActivity extends AppCompatActivity {
 
                         ref.setValue(emergencyData).addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
+                                trackAcceptance();
                                 Log.d("FirebaseDB", "Emergency data updated successfully in Realtime Database.");
                                 Toast.makeText(EmergencyActivity.this, "Emergency request sent!", Toast.LENGTH_LONG).show();
                             } else {
@@ -182,10 +190,29 @@ public class EmergencyActivity extends AppCompatActivity {
                     }
                 });
             });
+
         }
     }
 
+    private void trackAcceptance(){
+        ref.child("status").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String status = snapshot.getValue(String.class);
+                    if ("Accepted".equalsIgnoreCase(status)) {
+                        View newSheetView = LayoutInflater.from(EmergencyActivity.this).inflate(R.layout.bottom_sheet_vol_search, null);
+                        showBottomSheet(newSheetView, false);
+                    }
+                }
+            }
 
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(EmergencyActivity.this, "Failed to read status", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
     private void fetchSuggestions(String query) {
         if (query.isEmpty()) {
@@ -213,6 +240,64 @@ public class EmergencyActivity extends AppCompatActivity {
                     Toast.makeText(this, "Error fetching location", Toast.LENGTH_SHORT).show();
                 });
     }
+
+    private void showBottomSheet(View sheetView, Boolean isProgress) {
+        if (bottomSheetDialog == null) {
+            bottomSheetDialog = new BottomSheetDialog(EmergencyActivity.this);
+            bottomSheetDialog.setContentView(sheetView);
+        } else {
+            bottomSheetDialog.setContentView(sheetView);
+        }
+
+        View bottomSheet = bottomSheetDialog.getDelegate().findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottomSheet != null) {
+            bottomSheet.setBackground(null);
+        }
+
+        LottieAnimationView animationView = sheetView.findViewById(R.id.lottieLoadingAnimation);
+        ProgressBar progressBar = sheetView.findViewById(R.id.progressBarHorizontal);
+        animationView.setAnimation(R.raw.loading);
+        animationView.playAnimation();
+
+        if (isProgress) {
+            if (!bottomSheetDialog.isShowing()) {
+                bottomSheetDialog.show();
+            }
+            startProgressAnimation(progressBar);
+        } else {
+            animationView.setAnimation(R.raw.accepted);
+            stopProgressAnimation(progressBar);
+
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (bottomSheetDialog != null && bottomSheetDialog.isShowing()) {
+                    bottomSheetDialog.dismiss();
+                }
+            }, 3000);
+        }
+    }
+
+
+    private void startProgressAnimation(ProgressBar progressBar) {
+        progressAnimator = ObjectAnimator.ofInt(progressBar, "progress", 0, 100);
+        progressAnimator.setDuration(20000);
+        progressAnimator.setInterpolator(new LinearInterpolator());
+        progressAnimator.setRepeatCount(ObjectAnimator.INFINITE);
+        progressAnimator.start();
+    }
+
+    private void stopProgressAnimation(ProgressBar progressBar) {
+        if (progressAnimator != null) {
+            progressAnimator.cancel();
+            progressBar.setProgress(100);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                Intent intent = new Intent(EmergencyActivity.this, MapsActivity.class);
+                intent.putExtra("userIdEme",GlobalData.getUserId(EmergencyActivity.this));
+                startActivity(intent);
+                finish(); // optional
+            }, 3000);
+        }
+    }
+
 
     // Start volunteer search
     public void findNearestVolunteers(double userLat, double userLng, String serviceId) {

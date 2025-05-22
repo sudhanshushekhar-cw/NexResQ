@@ -125,13 +125,17 @@ public class EmergencyResponse extends FragmentActivity implements OnMapReadyCal
         acceptButton.setOnClickListener(v -> {
             Map<String, Object> update = new HashMap<>();
             update.put("status", "Accepted");
+            update.put("volunteerId", GlobalData.getUserId(EmergencyResponse.this));
             VolleyHelper.sendPostRequest(EmergencyResponse.this, POST_URL, postParams, new VolleyHelper.VolleyCallback() {
                 @Override
                 public void onSuccess(String response) {
                     ref.updateChildren(update)
                             .addOnSuccessListener(aVoid -> {
                                 Toast.makeText(EmergencyResponse.this, "Status updated", Toast.LENGTH_SHORT).show();
-                                fetchRouteAndDrawWithVolley();  // <-- Call it here!
+                                Intent intent = new Intent(EmergencyResponse.this, MapsActivity.class);
+                                intent.putExtra("userIdEme",userIdEme);
+                                startActivity(intent);
+                                finish();
                             })
                             .addOnFailureListener(e -> Toast.makeText(EmergencyResponse.this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
                 }
@@ -141,7 +145,6 @@ public class EmergencyResponse extends FragmentActivity implements OnMapReadyCal
                     Toast.makeText(EmergencyResponse.this, "Some Error Occurred", Toast.LENGTH_SHORT).show();
                 }
             });
-
         });
 
         GlobalData.getLastKnownLocation(this, location -> {
@@ -222,45 +225,4 @@ public class EmergencyResponse extends FragmentActivity implements OnMapReadyCal
         mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150)); // 150px padding
     }
 
-    private void fetchRouteAndDrawWithVolley() {
-        String url = "https://maps.googleapis.com/maps/api/directions/json" +
-                "?origin=" + currentLatLng.latitude + "," + currentLatLng.longitude +
-                "&destination=" + emergencyLatLng.latitude + "," + emergencyLatLng.longitude +
-                "&mode=driving" +
-                "&key=AIzaSyADB_W0m_bUfYumku4j_uczdtixkr6JZj4";  // Replace with your Google Directions API key
-
-        RequestQueue queue = Volley.newRequestQueue(this);
-
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                response -> {
-                    try {
-                        JSONObject json = new JSONObject(response);
-                        JSONArray routes = json.getJSONArray("routes");
-                        if (routes.length() > 0) {
-                            JSONObject route = routes.getJSONObject(0);
-                            JSONObject overviewPolyline = route.getJSONObject("overview_polyline");
-                            String encodedString = overviewPolyline.getString("points");
-
-                            List<LatLng> points = PolylineDecoder.decodePolyline(encodedString);
-
-                            runOnUiThread(() -> {
-                                mMap.addPolyline(new PolylineOptions()
-                                        .addAll(points)
-                                        .width(10)
-                                        .color(Color.BLUE));
-                            });
-                        } else {
-                            Toast.makeText(EmergencyResponse.this, "No route found", Toast.LENGTH_SHORT).show();
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        Toast.makeText(EmergencyResponse.this, "Parsing error", Toast.LENGTH_SHORT).show();
-                    }
-                },
-                error -> {
-                    Toast.makeText(EmergencyResponse.this, "Failed to fetch route: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-
-        queue.add(stringRequest);
-    }
 }
