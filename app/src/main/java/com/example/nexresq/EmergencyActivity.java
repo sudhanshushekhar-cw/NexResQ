@@ -292,6 +292,7 @@ public class EmergencyActivity extends AppCompatActivity {
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 Intent intent = new Intent(EmergencyActivity.this, MapsActivity.class);
                 intent.putExtra("userIdEme",GlobalData.getUserId(EmergencyActivity.this));
+                intent.putExtra("isGeofencingFeature",false);
                 startActivity(intent);
                 finish(); // optional
             }, 3000);
@@ -315,10 +316,12 @@ public class EmergencyActivity extends AppCompatActivity {
                 for (DataSnapshot userSnapshot : snapshot.getChildren()) {
                     Boolean isVolunteer = userSnapshot.child("isVolunteer").getValue(Boolean.class);
                     Boolean isAvailable = userSnapshot.child("isAvailable").getValue(Boolean.class);
+                    Boolean onDuty = userSnapshot.child("onDuty").getValue(Boolean.class);
                     String volunteerServiceId = userSnapshot.child("serviceId").getValue(String.class);
 
                     if (isVolunteer != null && isVolunteer &&
                             isAvailable != null && isAvailable &&
+                            onDuty != null && onDuty &&
                             volunteerServiceId != null && volunteerServiceId.equals(emergencyServiceId)) {
 
                         Double lat = userSnapshot.child("locations").child("latitude").getValue(Double.class);

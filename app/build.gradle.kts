@@ -20,6 +20,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/ASL2.0"
+            )
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -64,9 +77,10 @@ dependencies {
     // Add the dependencies for any other desired Firebase products
     // https://firebase.google.com/docs/android/setup#available-libraries
     //Firebase Realtime database
-    implementation("com.google.firebase:firebase-database")
+//    implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-database:20.3.0")
     implementation("com.google.firebase:firebase-messaging:23.4.0")// Latest as of 2025
+    implementation ("com.google.auth:google-auth-library-oauth2-http:1.16.0")  // for FMC oth libarary
 
 
     //for api request Fast Networking packages

@@ -9,18 +9,30 @@
         android:layout_height="wrap_content">
 
         <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/toolbar"
-            android:background="#ffffff" >
+            android:background="#ffffff">
 
-            <EditText
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/rounded_search_edittext_bg"
-                android:padding="8dp"
-                android:layout_marginRight="10dp"
-                android:hint="🔎 Search..." />
+            <!--            <EditText-->
+            <!--                android:layout_width="match_parent"-->
+            <!--                android:layout_height="match_parent"-->
+            <!--                android:background="@drawable/rounded_search_edittext_bg"-->
+            <!--                android:padding="8dp"-->
+            <!--                android:layout_marginRight="10dp"-->
+            <!--                android:hint="🔎 Search..." />-->
+
+            <Switch
+                android:id="@+id/onDutySwitchButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:text="Off Duty"
+                android:textColor="#9D1828"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_gravity="end"
+                android:paddingRight="20dp"/>
 
         </androidx.appcompat.widget.Toolbar>
 

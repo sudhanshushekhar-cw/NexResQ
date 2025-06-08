@@ -45,16 +45,33 @@
             android:textStyle="bold"
             android:layout_marginTop="8dp" />
 
-        <Switch
-            android:id="@+id/switchButton"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enable traffic Alert"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:textColor="#189D3E"
-            android:checked="false"
-            android:layout_marginTop="32dp" />
+            android:orientation="horizontal"
+            android:paddingTop="8dp">
+            <Switch
+                android:id="@+id/switchButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enable traffic Alert"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="#189D3E"
+                android:checked="false"
+                android:layout_marginTop="2dp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Completed"
+                android:textSize="15dp"
+                android:textColor="@color/white"
+                android:background="@drawable/rounded_button_bg"
+                android:id="@+id/resqDoneButton"
+                android:padding="10dp"/>
+
+        </LinearLayout>
 
 
     </LinearLayout>

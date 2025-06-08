@@ -7,6 +7,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Looper;
+import android.util.Log;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.core.app.ActivityCompat;
 
@@ -16,6 +19,12 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Collections;
 
 public class GlobalData {
 
@@ -102,8 +111,56 @@ public class GlobalData {
                 });
         }
 
-        // Custom callback interface
+        // Custom callback interface for location
         public interface MyLocationListener {
                 void onLocationReceived(Location location);
+        }
+
+        // Custom callback interface for AccessToken
+        public interface AccessTokenCallback {
+                void onTokenReceived(String token);
+                void onError(String error);
+        }
+
+        public static void getAccessTokenFromUrl(Context context, String serviceAccountUrl, AccessTokenCallback callback) {
+                Log.d("AccessToken", "Starting token retrieval from: " + serviceAccountUrl);
+
+                VolleyHelper.sendGetRequest(context, serviceAccountUrl, new VolleyHelper.VolleyCallback() {
+                        @Override
+                        public void onSuccess(String response) {
+                                Log.d("AccessToken", "Service account JSON downloaded successfully");
+
+                                new Thread(() -> {
+                                        try {
+                                                Log.d("AccessToken", "Converting response to InputStream");
+                                                ByteArrayInputStream inputStream = new ByteArrayInputStream(response.getBytes());
+
+                                                Log.d("AccessToken", "Creating GoogleCredentials from InputStream");
+                                                GoogleCredentials googleCredentials = GoogleCredentials.fromStream(inputStream)
+                                                        .createScoped(Collections.singleton("https://www.googleapis.com/auth/firebase.messaging"));
+
+                                                Log.d("AccessToken", "Refreshing credentials if expired");
+                                                googleCredentials.refreshIfExpired();  // ✅ Now runs on background thread
+
+                                                AccessToken token = googleCredentials.getAccessToken();
+
+                                                Log.d("AccessToken", "Access token obtained successfully: " + token.getTokenValue());
+
+                                                // Send result to main thread
+                                                new Handler(Looper.getMainLooper()).post(() -> callback.onTokenReceived(token.getTokenValue()));
+
+                                        } catch (IOException e) {
+                                                Log.e("AccessToken", "Failed to parse credentials or get token", e);
+                                                new Handler(Looper.getMainLooper()).post(() -> callback.onError("Token error: " + e.getMessage()));
+                                        }
+                                }).start();
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                                Log.e("AccessToken", "Failed to download service account JSON: " + error);
+                                callback.onError("Failed to download service account JSON: " + error);
+                        }
+                });
         }
 }

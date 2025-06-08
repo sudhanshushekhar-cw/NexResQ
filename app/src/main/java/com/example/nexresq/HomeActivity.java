@@ -4,6 +4,7 @@ import  android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
@@ -11,6 +12,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,6 +33,11 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class HomeActivity extends AppCompatActivity {
     DrawerLayout drawerLayout;
@@ -47,6 +54,63 @@ public class HomeActivity extends AppCompatActivity {
         navigationView = findViewById(R.id.navigationView);
         toolbar = findViewById(R.id.toolbar);
         headerView =  navigationView.getHeaderView(0);
+
+        Switch onDutySwitchButton = toolbar.findViewById(R.id.onDutySwitchButton);
+
+        String isVolunteer = GlobalData.isVolunteer(HomeActivity.this);
+
+        if(isVolunteer.equals("1")){
+            onDutySwitchButton.setVisibility(View.VISIBLE);
+
+            DatabaseReference ref = FirebaseDatabase.getInstance()
+                    .getReference("user")
+                    .child(GlobalData.getUserId(HomeActivity.this));
+
+            // 🔁 Fetch current onDuty value from database
+            ref.child("onDuty").get().addOnCompleteListener(task -> {
+                if (task.isSuccessful() && task.getResult().exists()) {
+                    Boolean onDuty = task.getResult().getValue(Boolean.class);
+                    if (onDuty != null) {
+                        onDutySwitchButton.setChecked(onDuty); // Set default state
+
+                        // Set color and text based on state
+                        if (onDuty) {
+                            onDutySwitchButton.setTextColor(Color.parseColor("#4CAF50")); // Green
+                            onDutySwitchButton.setText("On Duty");
+                        } else {
+                            onDutySwitchButton.setTextColor(Color.parseColor("#F44336")); // Red
+                            onDutySwitchButton.setText("Off Duty");
+                        }
+                    }
+                } else {
+                    // Default to off if not found
+                    onDutySwitchButton.setChecked(false);
+                    onDutySwitchButton.setTextColor(Color.parseColor("#F44336")); // Red
+                    onDutySwitchButton.setText("Off Duty");
+                }
+            });
+
+            // 🔄 Listener to update Firebase when toggled
+            onDutySwitchButton.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                Map<String, Object> userData = new HashMap<>();
+                userData.put("onDuty", isChecked);
+                ref.updateChildren(userData);
+
+                if (isChecked) {
+                    onDutySwitchButton.setTextColor(Color.parseColor("#4CAF50")); // Green
+                    onDutySwitchButton.setText("On Duty");
+                } else {
+                    onDutySwitchButton.setTextColor(Color.parseColor("#F44336")); // Red
+                    onDutySwitchButton.setText("Off Duty");
+                }
+            });
+
+        } else {
+            onDutySwitchButton.setVisibility(View.GONE);
+        }
+
+
+
 
         Menu menu = navigationView.getMenu();
         MenuItem teamItem = menu.findItem(R.id.menuTeam);

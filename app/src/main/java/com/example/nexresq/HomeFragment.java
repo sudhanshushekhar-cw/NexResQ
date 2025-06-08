@@ -6,6 +6,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -16,8 +17,10 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Toolbar;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -79,7 +82,8 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        refreshCardData();  // 👈 Custom method to update card data
+        refreshCardDataForUser();  // 👈 Custom method to update card data
+        refreshCardDataForVolunteer();
     }
 
     @Override
@@ -97,6 +101,7 @@ public class HomeFragment extends Fragment {
         CardView fireCard = view.findViewById(R.id.fireCard);
         CardView policeCard = view.findViewById(R.id.policeCard);
         CardView becomeVolunteerCard = view.findViewById(R.id.becomeVolunteerCard);
+
 
         emergencyStatusLinearLayout = view.findViewById(R.id.emergencyStatusLinearLayout);
         volunteerNameTextView = view.findViewById(R.id.volunteerNameTextView);
@@ -216,7 +221,7 @@ public class HomeFragment extends Fragment {
         });
     }
 
-    private void refreshCardData() {
+    private void refreshCardDataForUser() {
         DatabaseReference ref = FirebaseDatabase.getInstance()
                 .getReference("user")
                 .child(GlobalData.getUserId(requireContext())).child("emergency");  // Or your correct node
@@ -268,6 +273,94 @@ public class HomeFragment extends Fragment {
                                             public void onClick(View v) {
                                                 Intent intent = new Intent(requireContext(), MapsActivity.class);
                                                 intent.putExtra("userIdEme",GlobalData.getUserId(requireContext()));
+                                                intent.putExtra("isGeofencingFeature",false);
+                                                startActivity(intent);
+                                            }
+                                        });
+
+                                    } else {
+                                        emergencyStatusLinearLayout.setVisibility(View.GONE);
+                                    }
+                                } else {
+                                    Log.e(TAG, "Failed to fetch user data: " + jsonObject.getString("message"));
+                                }
+
+                            } catch (JSONException e) {
+                                Log.e(TAG, "JSON parsing error: " + e.getMessage());
+                            }
+                        }
+
+
+                        @Override
+                        public void onError(String error) {
+
+                        }
+                    });
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(requireContext(), "Failed to load data", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void refreshCardDataForVolunteer() {
+        DatabaseReference ref = FirebaseDatabase.getInstance()
+                .getReference("user")
+                .child(GlobalData.getUserId(requireContext()));  // Or your correct node
+
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String userIdEme = snapshot.child("userIdEme").getValue(String.class);
+                    Boolean isAvailable = snapshot.child("isAvailable").getValue(Boolean.class);
+                    String emergencyStatus = snapshot.child("emergencyStatus").getValue(String.class);
+                    String emergencyId = snapshot.child("emergencyId").getValue(String.class);
+                    String POST_URL = GlobalData.BASE_URL + "user/get_user_details.php";
+                    Map<String, String> params = new HashMap<>();
+                    params.put("userId", userIdEme);
+                    VolleyHelper.sendPostRequest(requireContext(), POST_URL, params, new VolleyHelper.VolleyCallback() {
+                        @Override
+                        public void onSuccess(String response) {
+                            Log.d(TAG, "Response userr: " + response);
+                            try {
+                                JSONObject jsonObject = new JSONObject(response);
+
+                                String statusCode = jsonObject.getString("status");
+                                if ("success".equalsIgnoreCase(statusCode)) {
+                                    JSONObject dataObject = jsonObject.getJSONObject("data");
+
+                                    String firstName = dataObject.getString("firstName");
+                                    String lastName = dataObject.getString("lastName");
+                                    String volunteerPhoneNumber = dataObject.getString("number");
+
+                                    String fullName = firstName + " " + lastName;
+                                    volunteerNameTextView.setText(fullName);
+                                    emergencyIdTextView.setText("#" + emergencyId);
+
+                                    if (!isAvailable && "Accepted".equals(emergencyStatus)) {
+                                        emergencyStatusLinearLayout.setVisibility(View.VISIBLE);
+                                        // Set click listener to open dialer
+                                        callIcon.setOnClickListener(v -> {
+                                            if (volunteerPhoneNumber != null && !volunteerPhoneNumber.isEmpty()) {
+                                                Intent dialIntent = new Intent(Intent.ACTION_DIAL);
+                                                dialIntent.setData(Uri.parse("tel:" + volunteerPhoneNumber));
+                                                startActivity(dialIntent);
+                                            } else {
+                                                Toast.makeText(requireContext(), "Phone number not available", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+
+                                        emergencyStatusCard.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View v) {
+                                                Intent intent = new Intent(requireContext(), MapsActivity.class);
+                                                intent.putExtra("userIdEme",userIdEme);
+                                                intent.putExtra("isGeofencingFeature",true);
                                                 startActivity(intent);
                                             }
                                         });

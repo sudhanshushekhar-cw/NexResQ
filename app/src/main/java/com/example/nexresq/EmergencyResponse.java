@@ -89,6 +89,11 @@ public class EmergencyResponse extends FragmentActivity implements OnMapReadyCal
                 .child(userIdEme)
                 .child("emergency");
 
+        Log.d("this is for", GlobalData.getUserId(EmergencyResponse.this));
+        DatabaseReference ref2 = FirebaseDatabase.getInstance()
+                .getReference("user")
+                .child(GlobalData.getUserId(EmergencyResponse.this));
+
         String apiKey = getString(R.string.google_maps_key);
         String GOOGLE_GEOCODING_URL = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + latEme + "," + lonEme + "&key=" + apiKey;
 
@@ -126,9 +131,17 @@ public class EmergencyResponse extends FragmentActivity implements OnMapReadyCal
             Map<String, Object> update = new HashMap<>();
             update.put("status", "Accepted");
             update.put("volunteerId", GlobalData.getUserId(EmergencyResponse.this));
+
+            Map<String, Object> update2 = new HashMap<>();
+            update2.put("isAvailable",false);
+            update2.put("userIdEme",userIdEme);
+            update2.put("emergencyId",emergencyId);
+            update2.put("emergencyStatus","Accepted");
+
             VolleyHelper.sendPostRequest(EmergencyResponse.this, POST_URL, postParams, new VolleyHelper.VolleyCallback() {
                 @Override
                 public void onSuccess(String response) {
+                    ref2.updateChildren(update2);
                     ref.updateChildren(update)
                             .addOnSuccessListener(aVoid -> {
                                 Toast.makeText(EmergencyResponse.this, "Status updated", Toast.LENGTH_SHORT).show();
