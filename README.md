@@ -128,4 +128,24 @@ The system also includes a **🚨 real-time traffic clearance alert feature** th
 
 ## 📜 License
 
-This project is licensed under the **MIT License** – you are free to use, modify, and distribute with attribution.
+Custom License Agreement
+Copyright © 2025 Team Square Root & Coaching Wood. All rights reserved.
+
+Project: NexResQ – Smart Emergency Response System
+
+Permission is hereby granted ONLY to view the source code for personal and educational purposes.
+You may NOT, without explicit written permission from Team Square Root and Coaching Wood:
+
+* Use this code or any part of it for commercial or non-commercial purposes.
+* Modify, redistribute, sublicense, or host this project.
+* Remove or alter any copyright or license notices.
+
+This software is proprietary to Coaching Wood and its contributors.
+Unauthorized use, reproduction, modification, or distribution of this software or its components will result in legal action under applicable laws.
+
+For permissions, contact:
+📧 [coachingwoodindia@gmail.com](mailto:coachingwoodindia@gmail.com)
+🌐 [www.coachingwood.in](https://www.coachingwood.in)
+🔒 [Privacy Policy](https://coachingwood.in/privacy-policy.html)
+
+
