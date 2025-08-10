@@ -64,8 +64,11 @@ The system also includes a **🚨 real-time traffic clearance alert feature** th
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/be342223-9c54-4768-a0b5-d5da7134806e" alt="Home Screen" width="250" height="500"/>
-  <img src="https://github.com/user-attachments/assets/be342223-9c54-4768-a0b5-d5da7134806e" alt="Emergency Request Screen" width="250" height="500"/>
-  <img src="https://github.com/user-attachments/assets/be342223-9c54-4768-a0b5-d5da7134806e" alt="Tracking Screen" width="250" height="500"/>
+  <img src="https://github.com/user-attachments/assets/e4f99527-6b83-4bbb-8e99-80548bbc2f9e" alt="Emergency Request Screen" width="250" height="500"/>
+  <img src="https://github.com/user-attachments/assets/bb12748e-a36f-4fd6-9812-e2533b894947" alt="Tracking Screen" width="250" height="500"/>
+  <img src="https://github.com/user-attachments/assets/fdff76d6-4451-4ff5-84c3-cb191ed164bf" alt="Home Screen" width="250" height="500"/>
+  <img src="https://github.com/user-attachments/assets/dea44a7d-c9c2-4955-8657-1d2b6558285f" alt="Emergency Request Screen" width="250" height="500"/>
+  <img src="https://github.com/user-attachments/assets/3a8d1501-6bb0-4afa-93dd-0803d8e4303b" alt="Tracking Screen" width="250" height="500"/>
 </p>
 
 ---
