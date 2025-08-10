@@ -58,12 +58,15 @@ The system also includes a **🚨 real-time traffic clearance alert feature** th
 * **APIs:** Google Maps API, Firebase API
 * **Algorithms:** Dijkstra’s, A\*, Priority Scheduling, Spatial Hashing
 
----![WhatsApp Image 2025-08-11 at 00 23 02_42df4393](https://github.com/user-attachments/assets/be342223-9c54-4768-a0b5-d5da7134806e)
-
+---
 
 ## 📸 Screenshots
 
-
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/be342223-9c54-4768-a0b5-d5da7134806e" alt="Home Screen" width="250" height="500"/>
+  <img src="https://github.com/user-attachments/assets/be342223-9c54-4768-a0b5-d5da7134806e" alt="Emergency Request Screen" width="250" height="500"/>
+  <img src="https://github.com/user-attachments/assets/be342223-9c54-4768-a0b5-d5da7134806e" alt="Tracking Screen" width="250" height="500"/>
+</p>
 
 ---
 
