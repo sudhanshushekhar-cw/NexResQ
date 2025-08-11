@@ -19,7 +19,7 @@ The system also includes a **🚨 real-time traffic clearance alert feature** th
 * **Dual-Purpose Mobile App** – Interfaces for both patients & ambulance drivers
 * **Dynamic Dispatch System** – AI-assisted priority queue & time-decay scheduling for emergencies
 * **Shortest Path Routing** – Real-time navigation avoiding traffic congestion
-* **🚨 Traffic Clearance Alerts** – **Sends instant notifications to all nearby vehicles (within 2–4 km) to clear the way for an approaching ambulance**
+* **Traffic Clearance Alerts** – **Sends instant notifications to all nearby vehicles (within 2–4 km) to clear the way for an approaching ambulance**
 * **Real-Time Synchronization** – Powered by Firebase Realtime Database & PHP APIs
 * **Secure Authentication** – Firebase Authentication for safe access
 
